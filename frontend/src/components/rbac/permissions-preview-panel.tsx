@@ -2,7 +2,10 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { controlClassName, labelClassName } from "@/components/ui/control";
-import type { RolePermissionPreviewResponse } from "@/services/rbac-api";
+import type {
+  RolePermissionPreviewResponse,
+  RolePermissionPreviewScope,
+} from "@/services/rbac-api";
 
 interface PermissionsPreviewPanelProperties {
   readonly preview: RolePermissionPreviewResponse;
@@ -10,6 +13,29 @@ interface PermissionsPreviewPanelProperties {
   readonly onCancel: () => void;
   /** Paket 5.1 (M4 B2): the server stores the reason in the change log. */
   readonly onConfirm: (reason: string) => void;
+}
+
+/** W2.31 (`BA-rbac-03`): a decision is only meaningful together with its scope. */
+type Translate = (key: string, options?: Record<string, string | number>) => string;
+
+function scopeLabel(t: Translate, scope: RolePermissionPreviewScope): string {
+  if (scope.kind === "organizational-unit") {
+    return t("permissions.previewScopeOrganizationalUnit", {
+      name: scope.organizationalUnitName ?? scope.organizationalUnitPath ?? "",
+    });
+  }
+  if (scope.kind === "service") {
+    return t("permissions.previewScopeService", {
+      name: scope.serviceName ?? scope.serviceId ?? "",
+    });
+  }
+  if (scope.kind === "organizational-unit-and-service") {
+    return t("permissions.previewScopeOrganizationalUnitAndService", {
+      organizationalUnit: scope.organizationalUnitName ?? scope.organizationalUnitPath ?? "",
+      service: scope.serviceName ?? scope.serviceId ?? "",
+    });
+  }
+  return t("permissions.previewScopeGlobal");
 }
 
 export function PermissionsPreviewPanel({
@@ -33,15 +59,31 @@ export function PermissionsPreviewPanel({
           removed: preview.removedPermissionKeys.length,
         })}
       </p>
+      {preview.scopeImpacts["organizational-unit"] > 0 ||
+      preview.scopeImpacts.service > 0 ||
+      preview.scopeImpacts["organizational-unit-and-service"] > 0 ? (
+        <p className="mt-1 text-[12px] text-muted-foreground">
+          {t("permissions.previewScopeImpacts", {
+            global: preview.scopeImpacts.global,
+            organizationalUnit:
+              preview.scopeImpacts["organizational-unit"] +
+              preview.scopeImpacts["organizational-unit-and-service"],
+            service:
+              preview.scopeImpacts.service +
+              preview.scopeImpacts["organizational-unit-and-service"],
+          })}
+        </p>
+      ) : null}
       {preview.samples.length > 0 ? (
         <ul className="mt-3 space-y-2">
           {preview.samples.map((sample) => (
             <li
-              key={`${sample.userId}-${sample.permissionKey}`}
+              key={`${sample.assignmentId}-${sample.permissionKey}-${sample.scope.kind}`}
               className="rounded border border-border/70 px-3 py-2 text-[12px]"
             >
               <p className="font-medium text-foreground">{sample.displayName}</p>
               <p className="text-muted-foreground">{sample.permissionKey}</p>
+              <p className="text-muted-foreground">{scopeLabel(t, sample.scope)}</p>
               <p className="mt-1 text-muted-foreground">
                 {t("permissions.previewDecisionChange", {
                   before: sample.before.decision,

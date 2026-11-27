@@ -1993,7 +1993,7 @@
         "read-only",
         "preview"
       ],
-      "updatedAt": "2026-10-07",
+      "updatedAt": "2026-11-27",
       "headings": [
         {
           "level": 2,
@@ -2061,7 +2061,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 1482,
+      "wordCount": 1501,
       "source": "docs/user-guide/uloge-i-permisije.md",
       "englishTitle": null
     },

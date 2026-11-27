@@ -54,6 +54,12 @@ function arrange() {
     addedPermissionKeys: [],
     removedPermissionKeys: ["problem.manage"],
     affectedUserCount: 0,
+    scopeImpacts: {
+      global: 0,
+      "organizational-unit": 0,
+      service: 0,
+      "organizational-unit-and-service": 0,
+    },
     samples: [],
   });
   vi.mocked(replaceRolePermissions).mockResolvedValue([]);

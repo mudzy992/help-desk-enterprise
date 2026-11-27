@@ -26,18 +26,52 @@ describe('RolesService preview and replace', () => {
     key: permissionKeys.settingsWrite,
   };
 
-  const createService = (invalidateRoleHolders = jest.fn().mockResolvedValue(1)) => {
+  type ServiceOptions = {
+    /** `userRole` rows Prisma returns for the preview scan. */
+    readonly assignments?: readonly Record<string, unknown>[];
+    /** Authorization contexts by subjectId; default is one global AGENT. */
+    readonly contexts?: Record<string, unknown>;
+    /** OU id → ouPath, used by the evaluator's scope lookups. */
+    readonly organizationalUnitPaths?: Record<string, string>;
+    /** Known service ids, used by the evaluator's service lookup. */
+    readonly serviceIds?: readonly string[];
+    /** Permission keys the role currently holds (default: `ticket.merge`). */
+    readonly currentPermissionKeys?: readonly string[];
+  };
+
+  const createService = (
+    invalidateRoleHolders = jest.fn().mockResolvedValue(1),
+    options: ServiceOptions = {},
+  ) => {
     // BA-rbac-01 (W2.29): the preview baseline and the write's compare-and-swap
     // both read this, so a test can model "another administrator committed in
     // between" by replacing the rows between the two calls.
-    const permissionRows: { permission: { key: string } }[] = [
-      { permission: { key: permissionKeys.ticketMerge } },
-    ];
+    const permissionRows: { permission: { key: string } }[] = (
+      options.currentPermissionKeys ?? [permissionKeys.ticketMerge]
+    ).map((key) => ({ permission: { key } }));
     // W2.30 (BA-rbac-02): the durable single-use claim store. `updateMany` is the
     // atomic consume (`consumedAt IS NULL` → now), so a second PUT of the same
     // token gets `count: 0` and the write is refused.
     const claims = new Map<string, { consumedAt: Date | null }>();
     const prisma: Record<string, unknown> = {
+      // W2.31 (BA-rbac-03): scope coverage is resolved through the preview's own
+      // client (`createAuthorizationLookups(loader, prisma)`), so the OU path and
+      // the known services live here, not on the harness.
+      organizationalUnit: {
+        findUnique: jest
+          .fn()
+          .mockImplementation(async ({ where }: { where: { id: string } }) => {
+            const path = options.organizationalUnitPaths?.[where.id];
+            return path === undefined ? null : { ouPath: path };
+          }),
+      },
+      service: {
+        findUnique: jest
+          .fn()
+          .mockImplementation(async ({ where }: { where: { id: string } }) =>
+            (options.serviceIds ?? []).includes(where.id) ? { id: where.id } : null,
+          ),
+      },
       rolePermissionPreviewClaim: {
         deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
         create: jest
@@ -85,15 +119,22 @@ describe('RolesService preview and replace', () => {
         create: jest.fn(),
       },
       userRole: {
-        findMany: jest.fn().mockResolvedValue([
-          {
-            user: {
-              id: 'user-1',
-              displayName: 'Agent One',
-              email: 'agent@example.com',
+        findMany: jest.fn().mockResolvedValue(
+          options.assignments ?? [
+            {
+              id: 'assignment-1',
+              organizationalUnitId: null,
+              serviceId: null,
+              organizationalUnit: null,
+              service: null,
+              user: {
+                id: 'user-1',
+                displayName: 'Agent One',
+                email: 'agent@example.com',
+              },
             },
-          },
-        ]),
+          ],
+        ),
         count: jest.fn().mockResolvedValue(1),
       },
       auditLog: {
@@ -106,16 +147,19 @@ describe('RolesService preview and replace', () => {
       $executeRaw: jest.fn(),
     };
     const harness = createTestAuthorizationHarness();
-    harness.loadBySubjectId.mockResolvedValue(
-      createTestAuthorizationContext({
-        assignments: [
-          createTestAssignment({
-            roleKey: authorizationRoleKeys.agent,
-            permissionKeys: [permissionKeys.ticketMerge],
-          }),
-        ],
-      }),
+    const defaultContext = createTestAuthorizationContext({
+      assignments: [
+        createTestAssignment({
+          roleKey: authorizationRoleKeys.agent,
+          permissionKeys: [permissionKeys.ticketMerge],
+        }),
+      ],
+    });
+    harness.loadBySubjectId.mockImplementation(
+      async (subjectId: string) =>
+        (options.contexts?.[subjectId] as never) ?? defaultContext,
     );
+
     const service = new RolesService(
       prisma as never,
       { loadBySubjectId: harness.loadBySubjectId } as never,
@@ -151,6 +195,203 @@ describe('RolesService preview and replace', () => {
     expect(preview.samples[0]?.after.decision).toBe(
       shadowAuthorizationDecisions.deny,
     );
+  });
+
+  // W2.31 (`BA-rbac-03`): the same removal is a different change depending on the
+  // assignment's scope. Before this package every evaluation ran globally, where
+  // the evaluator refuses scoped grants by construction — so an OU-scoped user
+  // who really loses `ticket.merge` produced deny/deny and no sample at all.
+  it('reports an OU-scoped allow→deny with the scope identity (BA-rbac-03)', async () => {
+    const { service } = createService(undefined, {
+      assignments: [
+        {
+          id: 'assignment-ou',
+          organizationalUnitId: 'ou-1',
+          serviceId: null,
+          organizationalUnit: { id: 'ou-1', name: 'Finansije', ouPath: '/finansije' },
+          service: null,
+          user: { id: 'user-2', displayName: 'Agent OU', email: 'agent-ou@example.com' },
+        },
+      ],
+      contexts: {
+        'user-2': createTestAuthorizationContext({
+          subjectId: 'user-2',
+          assignments: [
+            createTestAssignment({
+              organizationalUnitId: 'ou-1',
+              organizationalUnitPath: '/finansije',
+              permissionKeys: [permissionKeys.ticketMerge],
+            }),
+          ],
+        }),
+      },
+      organizationalUnitPaths: { 'ou-1': '/finansije' },
+    });
+
+    const preview = await service.preview(authorizationRoleKeys.agent, [], 'super-1');
+
+    expect(preview.samples).toHaveLength(1);
+    const [sample] = preview.samples;
+    expect(sample?.scope).toEqual({
+      kind: 'organizational-unit',
+      organizationalUnitId: 'ou-1',
+      organizationalUnitName: 'Finansije',
+      organizationalUnitPath: '/finansije',
+      serviceId: null,
+      serviceName: null,
+    });
+    expect(sample?.assignmentId).toBe('assignment-ou');
+    expect(sample?.before.decision).toBe(shadowAuthorizationDecisions.allow);
+    expect(sample?.after.decision).toBe(shadowAuthorizationDecisions.deny);
+    expect(preview.scopeImpacts).toEqual({
+      global: 0,
+      'organizational-unit': 1,
+      service: 0,
+      'organizational-unit-and-service': 0,
+    });
+  });
+
+  it('reports a service-scoped allow→deny with the service identity (BA-rbac-03)', async () => {
+    const { service } = createService(undefined, {
+      assignments: [
+        {
+          id: 'assignment-service',
+          organizationalUnitId: null,
+          serviceId: 'svc-1',
+          organizationalUnit: null,
+          service: { id: 'svc-1', name: 'VPN' },
+          user: { id: 'user-3', displayName: 'Agent VPN', email: 'agent-vpn@example.com' },
+        },
+      ],
+      contexts: {
+        'user-3': createTestAuthorizationContext({
+          subjectId: 'user-3',
+          assignments: [
+            createTestAssignment({
+              serviceId: 'svc-1',
+              permissionKeys: [permissionKeys.ticketMerge],
+            }),
+          ],
+        }),
+      },
+      serviceIds: ['svc-1'],
+    });
+
+    const preview = await service.preview(authorizationRoleKeys.agent, [], 'super-1');
+
+    expect(preview.samples).toHaveLength(1);
+    const [sample] = preview.samples;
+    expect(sample?.scope).toMatchObject({
+      kind: 'service',
+      organizationalUnitId: null,
+      serviceId: 'svc-1',
+      serviceName: 'VPN',
+    });
+    expect(sample?.before.decision).toBe(shadowAuthorizationDecisions.allow);
+    expect(sample?.after.decision).toBe(shadowAuthorizationDecisions.deny);
+    expect(preview.scopeImpacts.service).toBe(1);
+    expect(preview.scopeImpacts.global).toBe(0);
+  });
+
+  it('reports a deny→allow inside an OU+service scope (BA-rbac-03)', async () => {
+    const { service } = createService(undefined, {
+      currentPermissionKeys: [],
+      assignments: [
+        {
+          id: 'assignment-both',
+          organizationalUnitId: 'ou-2',
+          serviceId: 'svc-2',
+          organizationalUnit: { id: 'ou-2', name: 'Podrška', ouPath: '/podrska' },
+          service: { id: 'svc-2', name: 'E-mail' },
+          user: { id: 'user-4', displayName: 'Agent Both', email: 'agent-both@example.com' },
+        },
+      ],
+      contexts: {
+        'user-4': createTestAuthorizationContext({
+          subjectId: 'user-4',
+          assignments: [
+            createTestAssignment({
+              organizationalUnitId: 'ou-2',
+              organizationalUnitPath: '/podrska',
+              serviceId: 'svc-2',
+              permissionKeys: [],
+            }),
+          ],
+        }),
+      },
+      organizationalUnitPaths: { 'ou-2': '/podrska' },
+      serviceIds: ['svc-2'],
+    });
+
+    const preview = await service.preview(
+      authorizationRoleKeys.agent,
+      [permissionKeys.ticketMerge],
+      'super-1',
+    );
+
+    const [sample] = preview.samples;
+    expect(sample?.scope.kind).toBe('organizational-unit-and-service');
+    expect(sample?.before.decision).toBe(shadowAuthorizationDecisions.deny);
+    expect(sample?.after.decision).toBe(shadowAuthorizationDecisions.allow);
+    expect(preview.scopeImpacts['organizational-unit-and-service']).toBe(1);
+  });
+
+  it('counts a scope-agnostic permission in the scope and globally (BA-rbac-03)', async () => {
+    // `oncall.read` ignores the scope by policy: the same OU-scoped assignment
+    // really grants it everywhere, so the report must not hide the global part.
+    const { service } = createService(undefined, {
+      currentPermissionKeys: [permissionKeys.onCallRead],
+      assignments: [
+        {
+          id: 'assignment-ou',
+          organizationalUnitId: 'ou-1',
+          serviceId: null,
+          organizationalUnit: { id: 'ou-1', name: 'Finansije', ouPath: '/finansije' },
+          service: null,
+          user: { id: 'user-2', displayName: 'Agent OU', email: 'agent-ou@example.com' },
+        },
+      ],
+      contexts: {
+        'user-2': createTestAuthorizationContext({
+          subjectId: 'user-2',
+          assignments: [
+            createTestAssignment({
+              organizationalUnitId: 'ou-1',
+              organizationalUnitPath: '/finansije',
+              permissionKeys: [permissionKeys.onCallRead],
+            }),
+          ],
+        }),
+      },
+      organizationalUnitPaths: { 'ou-1': '/finansije' },
+    });
+
+    const preview = await service.preview(authorizationRoleKeys.agent, [], 'super-1');
+
+    expect(preview.samples.map((sample) => sample.scope.kind)).toEqual([
+      'organizational-unit',
+      'global',
+    ]);
+    expect(preview.scopeImpacts).toEqual({
+      global: 1,
+      'organizational-unit': 1,
+      service: 0,
+      'organizational-unit-and-service': 0,
+    });
+  });
+
+  it('keeps an unscoped assignment a global effect', async () => {
+    const { service } = createService();
+    const preview = await service.preview(authorizationRoleKeys.agent, [], 'super-1');
+    expect(preview.samples[0]?.scope).toEqual({
+      kind: 'global',
+      organizationalUnitId: null,
+      organizationalUnitName: null,
+      organizationalUnitPath: null,
+      serviceId: null,
+      serviceName: null,
+    });
+    expect(preview.scopeImpacts.global).toBe(1);
   });
 
   it('replace swaps role permissions and writes audit metadata', async () => {

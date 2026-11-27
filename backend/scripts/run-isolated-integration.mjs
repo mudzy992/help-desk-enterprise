@@ -148,6 +148,9 @@ export const integrationSpecs = Object.freeze([
   // W2.29 (BA-rbac-01): a preview older than another administrator's commit is
   // refused by the baseline compare-and-swap — no row, no audit entry.
   "src/modules/rbac/role-permission-preview-cas.integration.spec.ts",
+  // W2.31 (BA-rbac-03): the impact preview evaluates each assignment in its own
+  // OU/service scope and names that scope in the report.
+  "src/modules/rbac/role-permission-preview-scope.integration.spec.ts",
 ]);
 
 export function buildDatabaseName(index, spec) {
