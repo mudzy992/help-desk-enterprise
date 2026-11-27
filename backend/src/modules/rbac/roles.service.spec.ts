@@ -42,6 +42,11 @@ describe('RolesService preview and replace', () => {
      * transaction, with the version the bump produces for each of them.
      */
     readonly holders?: readonly { readonly userId: string; readonly authzVersion: number }[];
+    /**
+     * W2.33 (`BA-rbac-06`): the distinct holders the preview counts. Defaults to
+     * the people behind the assignment rows.
+     */
+    readonly distinctUsers?: readonly string[];
   };
 
   const createService = (
@@ -147,7 +152,21 @@ describe('RolesService preview and replace', () => {
             },
           ]),
         ),
-        count: jest.fn().mockResolvedValue(1),
+        count: jest.fn().mockResolvedValue(
+          (options.assignments ?? [{ user: { id: 'user-1' } }]).length,
+        ),
+        // W2.33 (`BA-rbac-06`): `count` counts rows, `groupBy` counts people.
+        groupBy: jest.fn().mockImplementation(async () =>
+          (
+            options.distinctUsers ?? [
+              ...new Set(
+                (options.assignments ?? [
+                  { user: { id: 'user-1' } },
+                ]).map((assignment) => (assignment.user as { id: string }).id),
+              ),
+            ]
+          ).map((userId) => ({ userId })),
+        ),
       },
       // W2.32 (`BA-rbac-05`): the fence is a write inside the transaction.
       user: {
@@ -401,15 +420,144 @@ describe('RolesService preview and replace', () => {
 
     const preview = await service.preview(authorizationRoleKeys.agent, [], 'super-1');
 
+    // W2.33 (`BA-rbac-06`): both decisions are still counted, but the person is
+    // illustrated once — three samples of one person are not a sample of people.
     expect(preview.samples.map((sample) => sample.scope.kind)).toEqual([
       'organizational-unit',
-      'global',
     ]);
     expect(preview.scopeImpacts).toEqual({
       global: 1,
       'organizational-unit': 1,
       service: 0,
       'organizational-unit-and-service': 0,
+    });
+    expect(preview.affectedUserCount).toBe(1);
+  });
+
+  // W2.33 (`BA-rbac-06`): "who is affected" is a question about people. A role
+  // can be granted to the same person in several OU/service scopes, and the
+  // preview used to count those rows as separate people.
+  describe('distinct affected users (BA-rbac-06)', () => {
+    it('counts a person with two scoped assignments once and samples them once', async () => {
+      const { service } = createService(undefined, {
+        currentPermissionKeys: [permissionKeys.ticketMerge],
+        distinctUsers: ['user-9'],
+        assignments: [
+          {
+            id: 'assignment-ou',
+            organizationalUnitId: 'ou-1',
+            serviceId: null,
+            organizationalUnit: {
+              id: 'ou-1',
+              name: 'Finansije',
+              ouPath: '/finansije',
+            },
+            service: null,
+            user: {
+              id: 'user-9',
+              displayName: 'Agent dva scopea',
+              email: 'agent-scope@example.com',
+            },
+          },
+          {
+            id: 'assignment-service',
+            organizationalUnitId: null,
+            serviceId: 'svc-1',
+            organizationalUnit: null,
+            service: { id: 'svc-1', name: 'VPN' },
+            user: {
+              id: 'user-9',
+              displayName: 'Agent dva scopea',
+              email: 'agent-scope@example.com',
+            },
+          },
+        ],
+        organizationalUnitPaths: { 'ou-1': '/finansije' },
+        serviceIds: ['svc-1'],
+        contexts: {
+          'user-9': createTestAuthorizationContext({
+            subjectId: 'user-9',
+            assignments: [
+              createTestAssignment({
+                organizationalUnitId: 'ou-1',
+                organizationalUnitPath: '/finansije',
+                permissionKeys: [permissionKeys.ticketMerge],
+              }),
+              createTestAssignment({
+                serviceId: 'svc-1',
+                permissionKeys: [permissionKeys.ticketMerge],
+              }),
+            ],
+          }),
+        },
+      });
+
+      const preview = await service.preview(
+        authorizationRoleKeys.agent,
+        [],
+        'super-1',
+      );
+
+      // Two grants, one person.
+      expect(preview.affectedUserCount).toBe(1);
+      expect(preview.affectedAssignmentCount).toBe(2);
+      expect(preview.samples).toHaveLength(1);
+      expect(new Set(preview.samples.map((sample) => sample.userId))).toEqual(
+        new Set(['user-9']),
+      );
+      // Both decisions are still counted — the counter must not lose the scope
+      // that the sample list had to drop.
+      expect(preview.scopeImpacts).toEqual({
+        global: 0,
+        'organizational-unit': 1,
+        service: 1,
+        'organizational-unit-and-service': 0,
+      });
+    });
+
+    it('reports assignment rows next to the distinct people they belong to', async () => {
+      const { service } = createService(undefined, {
+        currentPermissionKeys: [permissionKeys.ticketMerge],
+        distinctUsers: ['user-1', 'user-2'],
+        assignments: [
+          {
+            id: 'assignment-1',
+            organizationalUnitId: null,
+            serviceId: null,
+            organizationalUnit: null,
+            service: null,
+            user: { id: 'user-1', displayName: 'Agent One', email: 'one@example.com' },
+          },
+          {
+            id: 'assignment-2',
+            organizationalUnitId: null,
+            serviceId: null,
+            organizationalUnit: null,
+            service: null,
+            user: { id: 'user-1', displayName: 'Agent One', email: 'one@example.com' },
+          },
+          {
+            id: 'assignment-3',
+            organizationalUnitId: null,
+            serviceId: null,
+            organizationalUnit: null,
+            service: null,
+            user: { id: 'user-2', displayName: 'Agent Two', email: 'two@example.com' },
+          },
+        ],
+      });
+
+      const preview = await service.preview(
+        authorizationRoleKeys.agent,
+        [],
+        'super-1',
+      );
+
+      expect(preview.affectedUserCount).toBe(2);
+      expect(preview.affectedAssignmentCount).toBe(3);
+      expect(new Set(preview.samples.map((sample) => sample.userId)).size).toBe(
+        preview.samples.length,
+      );
     });
   });
 

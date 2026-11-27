@@ -3452,7 +3452,7 @@
     {
       "id": "BA-rbac-06",
       "severity": "P3",
-      "status": "otvoreno",
+      "status": "zatvoreno (W2.33, [367](../implementation/367-w233-ba-rbac-06-distinct-affected-users.md))",
       "source": "03-rbac.md",
       "owner": "WS-A",
       "wave": 2

@@ -54,6 +54,7 @@ function arrange() {
     addedPermissionKeys: [],
     removedPermissionKeys: ["problem.manage"],
     affectedUserCount: 0,
+    affectedAssignmentCount: 0,
     scopeImpacts: {
       global: 0,
       "organizational-unit": 0,
@@ -80,6 +81,43 @@ async function confirmSave(failRefresh: boolean) {
   if (failRefresh) vi.mocked(listRoles).mockRejectedValue(auditUnavailable());
   fireEvent.click(screen.getByRole("button", { name: "permissions.confirmSave" }));
 }
+
+describe("PermissionsPanel preview counts (W2.33)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    arrange();
+  });
+  afterEach(cleanup);
+
+  it("shows the grants behind a smaller headcount", async () => {
+    vi.mocked(previewRolePermissions).mockResolvedValue({
+      previewToken: "token-1",
+      roleKey: "AGENT",
+      currentPermissionKeys: ["problem.manage"],
+      proposedPermissionKeys: [],
+      addedPermissionKeys: [],
+      removedPermissionKeys: ["problem.manage"],
+      // Three grants for one person: the summary counts the person, the second
+      // line explains why the scope counters can be larger.
+      affectedUserCount: 1,
+      affectedAssignmentCount: 3,
+      scopeImpacts: {
+        global: 2,
+        "organizational-unit": 1,
+        service: 0,
+        "organizational-unit-and-service": 0,
+      },
+      samples: [],
+    });
+
+    render(<PermissionsPanel />);
+    fireEvent.click(await screen.findByRole("switch"));
+    fireEvent.click(screen.getByRole("button", { name: "permissions.previewAction" }));
+
+    expect(await screen.findByText("permissions.previewAssignmentCount")).toBeTruthy();
+    expect(screen.getByText("permissions.previewSummary")).toBeTruthy();
+  });
+});
 
 describe("PermissionsPanel save vs refresh (W7.72)", () => {
   beforeEach(() => {

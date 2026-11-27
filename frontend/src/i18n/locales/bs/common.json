@@ -1673,6 +1673,7 @@
     "previewScopeOrganizationalUnit": "OJ: {{name}}",
     "previewScopeService": "servis: {{name}}",
     "previewScopeOrganizationalUnitAndService": "OJ: {{organizationalUnit}} · servis: {{service}}",
+    "previewAssignmentCount": "{{count}} dodjela za {{users}} različitih korisnika",
     "previewScopeImpacts": "Efekat po scopeu: {{global}} globalno · {{organizationalUnit}} unutar OJ · {{service}} unutar servisa",
     "previewNoSamples": "Nema uzoraka promjene odluke za pogođene korisnike.",
     "confirmSave": "Potvrdi i sačuvaj",

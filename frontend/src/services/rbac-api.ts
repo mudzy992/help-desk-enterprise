@@ -61,7 +61,10 @@ export type RolePermissionPreviewResponse = {
   readonly proposedPermissionKeys: readonly string[];
   readonly addedPermissionKeys: readonly string[];
   readonly removedPermissionKeys: readonly string[];
+  /** W2.33 (`BA-rbac-06`): distinct people, not assignment rows. */
   readonly affectedUserCount: number;
+  /** W2.33 (`BA-rbac-06`): the grants behind those people. */
+  readonly affectedAssignmentCount: number;
   /** W2.31 (`BA-rbac-03`): global vs OU vs service effect, counted before sampling. */
   readonly scopeImpacts: RolePermissionPreviewScopeImpacts;
   readonly samples: readonly RolePermissionPreviewSample[];

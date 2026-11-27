@@ -23,7 +23,12 @@ import {
 const previewSampleLimit = 3;
 // Bounded scan: a role can hold thousands of assignments, and the report only
 // needs the first flips plus the counters.
-const previewAssignmentLimit = 25;
+const previewAssignmentScanLimit = 250;
+// W2.33 (`BA-rbac-06`): the preview evaluates **people**, so the bound is on
+// distinct holders. The row window above is wider than this on purpose: one
+// person can hold the role in several OU/service scopes, and all of their
+// assignments decide what that person actually loses.
+const previewUserLimit = 25;
 
 function diffPermissionKeys(
   current: readonly string[],
@@ -134,6 +139,30 @@ function requirementsForScope(
   };
 }
 
+/**
+ * W2.33 (`BA-rbac-06`): one row per person, in the deterministic order the query
+ * already produced. A holder with several scoped assignments keeps all of them —
+ * dropping the rows would under-report the effect — but only the first
+ * `previewUserLimit` people are evaluated, so the cost stays bounded by people
+ * rather than by grants.
+ */
+function assignmentsForDistinctUsers(
+  assignments: readonly ScopedAssignment[],
+): readonly ScopedAssignment[] {
+  const selected: ScopedAssignment[] = [];
+  const users = new Set<string>();
+  for (const assignment of assignments) {
+    if (!users.has(assignment.user.id)) {
+      if (users.size >= previewUserLimit) {
+        continue;
+      }
+      users.add(assignment.user.id);
+    }
+    selected.push(assignment);
+  }
+  return selected;
+}
+
 function emptyScopeImpacts(): Record<keyof RolePermissionPreviewScopeImpacts, number> {
   return {
     [rolePermissionPreviewScopeKinds.global]: 0,
@@ -161,7 +190,7 @@ export async function previewRolePermissionImpact(input: {
     currentPermissionKeys,
     proposedPermissionKeys,
   );
-  const affectedAssignments = (await input.prisma.userRole.findMany({
+  const scannedAssignments = (await input.prisma.userRole.findMany({
     where: { roleId: role.id },
     select: {
       id: true,
@@ -172,11 +201,20 @@ export async function previewRolePermissionImpact(input: {
       user: { select: { id: true, displayName: true, email: true } },
     },
     orderBy: [{ user: { displayName: 'asc' } }, { id: 'asc' }],
-    take: previewAssignmentLimit,
+    take: previewAssignmentScanLimit,
   })) as readonly ScopedAssignment[];
-  const affectedUserCount = await input.prisma.userRole.count({
+  const affectedAssignments = assignmentsForDistinctUsers(scannedAssignments);
+  const affectedAssignmentCount = await input.prisma.userRole.count({
     where: { roleId: role.id },
   });
+  // W2.33 (`BA-rbac-06`): `count` counts rows, so the same person with the same
+  // role in two scopes was reported as two people. `groupBy` answers the
+  // question the report actually asks.
+  const affectedUsers = await input.prisma.userRole.groupBy({
+    by: ['userId'],
+    where: { roleId: role.id },
+  });
+  const affectedUserCount = affectedUsers.length;
   const beforeLookups = createAuthorizationLookups(
     input.authorizationContextLoader,
     input.prisma,
@@ -190,6 +228,7 @@ export async function previewRolePermissionImpact(input: {
   const changedKeys = [...removed, ...added];
   const scopeImpacts = emptyScopeImpacts();
   const samples: RolePermissionPreviewSample[] = [];
+  const sampledUserIds = new Set<string>();
   for (const assignment of affectedAssignments) {
     const principal = {
       subjectId: assignment.user.id,
@@ -228,6 +267,13 @@ export async function previewRolePermissionImpact(input: {
         if (samples.length >= previewSampleLimit) {
           continue;
         }
+        // W2.33 (`BA-rbac-06`): three samples of the same person are not a
+        // sample of the affected users. The decision is still counted above;
+        // only the illustration is limited to one row per person.
+        if (sampledUserIds.has(assignment.user.id)) {
+          continue;
+        }
+        sampledUserIds.add(assignment.user.id);
         samples.push({
           userId: assignment.user.id,
           displayName: assignment.user.displayName,
@@ -281,6 +327,7 @@ export async function previewRolePermissionImpact(input: {
     addedPermissionKeys: added,
     removedPermissionKeys: removed,
     affectedUserCount,
+    affectedAssignmentCount,
     scopeImpacts,
     samples,
   };

@@ -132,7 +132,7 @@ Blokada je isti reproducibility nalaz evidentiran u prethodna dva modula. Nije p
 | BA-rbac-03 | P2       | Scoped role impact preview može prikazati pogrešan rezultat                           | zatvoreno (W2.31, [365](../implementation/365-w231-ba-rbac-03-scope-aware-preview.md)) | M        |
 | BA-rbac-04 | P2       | `SUPER_ADMIN` permission matrica je uređiva, ali runtime je ignoriše                  | zatvoreno | S        |
 | BA-rbac-05 | P2       | Post-commit invalidacija nosilaca nije durable niti fail-closed                       | zatvoreno (W2.32, [366](../implementation/366-w232-ba-rbac-05-durable-holder-invalidation.md)) | M        |
-| BA-rbac-06 | P3       | Preview broj pogođenih broji assignment redove, ne jedinstvene korisnike              | otvoreno | S        |
+| BA-rbac-06 | P3       | Preview broj pogođenih broji assignment redove, ne jedinstvene korisnike              | zatvoreno (W2.33, [367](../implementation/367-w233-ba-rbac-06-distinct-affected-users.md)) | S        |
 | BA-rbac-07 | P3       | DTO nema eksplicitne limite za broj/dužinu permissiona i preview token                | otvoreno | S        |
 | BA-rbac-08 | P3       | Aditivni seeder može vratiti namjerno uklonjena prava bez apply-time baseline potvrde | otvoreno | M        |
 
@@ -215,6 +215,15 @@ Blokada je isti reproducibility nalaz evidentiran u prethodna dva modula. Nije p
 - **Korekcija:** distinct user ID count i deterministički unique-user sample; zasebno prikazati broj assignmenta ako je koristan.
 - **Acceptance:** korisnik sa dvije scoped assignment stavke broji se kao jedna osoba i najviše jedan sample user.
 - **Owner:** RBAC owner.
+- **Zatvoreno u W2.33** ([367](../implementation/367-w233-ba-rbac-06-distinct-affected-users.md)):
+  `affectedUserCount` se sada računa kroz `userRole.groupBy({ by: ['userId'] })` (osobe), a stari broj redova je
+  zadržan kao novo aditivno polje `affectedAssignmentCount`; skeniranje je ograničeno po **osobama**
+  (`previewUserLimit = 25`, prozor od 250 redova, sve dodjele zadržane), a uzorci koriste `sampledUserIds` pa
+  najviše jedan red pripada istoj osobi — dok `scopeImpacts` i dalje broji svaku promijenjenu odluku po dodjeli.
+  Dokaz: dva nova unit scenarija (jedna osoba sa OU+service dodjelom → `1` osoba / `2` dodjele / jedan uzorak, a
+  obje odluke u `scopeImpacts`; tri reda / dvije osobe → `2` i `3`) i real-DB
+  `role-permission-preview-distinct-users.integration.spec.ts` (A ima dvije dodjele, B jednu → `affectedUserCount = 2`,
+  `affectedAssignmentCount = 3`, `scopeImpacts = {global: 2, organizational-unit: 1}`, dva uzorka različitih osoba).
 
 ### BA-rbac-07 — Nebounded DTO kolekcija/token
 
@@ -298,7 +307,7 @@ Blokada je isti reproducibility nalaz evidentiran u prethodna dva modula. Nije p
 | BA-rbac-03 | OU/service assignment fixture | scope-aware impact report (uzorak nosi `scope`, `scopeImpacts` broji po scopeu) |
 | BA-rbac-04 | SUPER_ADMIN replace test      | immutable greška ili stvarni runtime efekt |
 | BA-rbac-05 | invalidator/Redis fault       | fence u transakciji: payload stare verzije odbijen; outbox retry (`PENDING`/`attempts`) do `SUCCEEDED`, bez drugog bumpa |
-| BA-rbac-06 | dupli scoped assignment       | distinct user count/sample                 |
+| BA-rbac-06 | dupli scoped assignment       | `groupBy` broji osobe, `count` dodjele; uzorci jedinstveni po osobi (real-DB: 2 osobe / 3 dodjele) |
 | BA-rbac-07 | oversized DTO matrica         | kontrolisani 400                           |
 | BA-rbac-08 | dry-run pa state drift        | apply odbijen bez nove potvrde             |
 

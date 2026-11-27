@@ -33,6 +33,16 @@ export function PermissionsPreviewPanel({
           removed: preview.removedPermissionKeys.length,
         })}
       </p>
+      {preview.affectedAssignmentCount > preview.affectedUserCount ? (
+        // W2.33 (`BA-rbac-06`): the summary counts people; the grants behind
+        // them explain why the scope counters can be larger than the headcount.
+        <p className="mt-1 text-[12px] text-muted-foreground">
+          {t("permissions.previewAssignmentCount", {
+            count: preview.affectedAssignmentCount,
+            users: preview.affectedUserCount,
+          })}
+        </p>
+      ) : null}
       {preview.scopeImpacts["organizational-unit"] > 0 ||
       preview.scopeImpacts.service > 0 ||
       preview.scopeImpacts["organizational-unit-and-service"] > 0 ? (
