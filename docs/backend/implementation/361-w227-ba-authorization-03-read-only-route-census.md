@@ -129,7 +129,12 @@ grana. `read-only-mode.constants.ts` više ne opisuje rute — samo vlasništvo 
 
 ### 3.3 CI
 
-_Detalji se dopunjavaju uz PR (vidi ledger `W2.27` u `EXECUTION-PLAN-REMAINING.md`)._
+PR #44, run `45966116686` — **svi poslovi zeleni**: `Backend build + test`, `Backend PostgreSQL + Redis integration`
+(14m34s), `Frontend build + test`, `Backend container + supply chain`, `Docs guard`, `E2E critical flows`,
+`CI gate`. Prvi prolaz E2E-a je pao na `22-accessibility.spec.ts:85`
+(„AGENT key flows have no serious findings (dark)", axe oznaka na `agent-ticket-detail-dark`) — paket ne dira
+frontend, a rerun istog posla je zelen, pa je to poznati accessibility flake, ne regresija ovog paketa.
+Push run `45966094380` ✓ sa integracijom `skipped` (CI ugovor); Perf smoke `45966116620` ✓ i `45966094338` ✓.
 
 ## 4. Šta paket mijenja u ponašanju
 
