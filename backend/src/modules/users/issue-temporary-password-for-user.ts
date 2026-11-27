@@ -11,6 +11,7 @@ import type { HibpPasswordChecker } from '../authentication/security/hibp-passwo
 import { recordUserChange, type UserChangeAction } from './record-user-change';
 import { hashLocalPassword } from '../authentication/hash-local-password';
 import { generateTemporaryPassword } from './generate-temporary-password';
+import { isReservedNoEmailAddress } from './is-reserved-no-email-address';
 import { sendTemporaryPasswordEmail } from './send-temporary-password-email';
 import { UsersError } from './users.error';
 import type { TemporaryPasswordDelivery } from './users.types';
@@ -44,6 +45,22 @@ export async function generateUncompromisedTemporaryPassword(
     if (verdict !== 'pwned') return candidate;
   }
   throw new UsersError('TEMPORARY_PASSWORD_GENERATION_FAILED');
+}
+
+/**
+ * W2.26 (`BA-users-02`): password generation and hashing are pure (one HIBP call at
+ * most), so `createUser` does them **before** it opens its transaction: the work is
+ * expensive, it cannot fail on database state, and a rejected password therefore
+ * never reaches a write. The hash is what the transaction stores.
+ */
+export async function prepareTemporaryPassword(
+  hibpChecker?: HibpPasswordChecker,
+): Promise<{ readonly temporaryPassword: string; readonly localPasswordHash: string }> {
+  const temporaryPassword = await generateUncompromisedTemporaryPassword(hibpChecker);
+  return {
+    temporaryPassword,
+    localPasswordHash: await hashLocalPassword(temporaryPassword),
+  };
 }
 
 export async function issueTemporaryPasswordForUser(input: {
@@ -150,16 +167,4 @@ async function trySendTemporaryPassword(input: {
   }
 }
 
-/** Domains listed here (comma-separated) always get UI password delivery. */
-export function isReservedNoEmailAddress(
-  email: string,
-  domainsCsv: string = process.env.RESERVED_NO_EMAIL_DOMAINS ?? 'example.com',
-): boolean {
-  const domain = email.trim().toLowerCase().split('@')[1] ?? '';
-  if (domain.length === 0) return false;
-  return domainsCsv
-    .split(',')
-    .map((entry) => entry.trim().toLowerCase())
-    .filter((entry) => entry.length > 0)
-    .includes(domain);
-}
+export { isReservedNoEmailAddress } from './is-reserved-no-email-address';

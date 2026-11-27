@@ -1,5 +1,6 @@
 import { Injectable, Logger, Optional } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { TransactionalOutboxService } from '../../common/outbox/transactional-outbox.service';
 import { DirectorySyncService } from '../directory-sync/directory-sync.service';
 import { PrincipalContextInvalidator } from '../../common/principal-context/principal-context-invalidator.service';
 import { HibpPasswordChecker } from '../authentication/security/hibp-password-checker';
@@ -73,6 +74,12 @@ export class UsersService {
     // fails if that ever stops being true.
     @Optional()
     private readonly securityBoundary?: AccountSecurityBoundaryService,
+    // W2.26 (`BA-users-02`): the account-creation commit writes its durable
+    // temporary-password delivery intent on the same transaction. Optional keeps
+    // every existing positional construction working; the module always provides it
+    // and without it creation degrades to handing the secret back to the caller.
+    @Optional()
+    private readonly outbox?: TransactionalOutboxService,
   ) {}
 
   /** Phase 2.2: hands the mutation functions the authorization cache hook. */
@@ -184,6 +191,7 @@ export class UsersService {
         settingsService: this.settingsService,
         mailTransport: this.mailTransport,
         hibpChecker: this.hibpPasswordChecker,
+        outbox: this.outbox,
       }),
     );
   }
