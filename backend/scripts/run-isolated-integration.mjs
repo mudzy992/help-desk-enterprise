@@ -62,6 +62,7 @@ export const integrationSpecs = Object.freeze([
   "src/modules/websocket/websocket-abuse-limiter.integration.spec.ts",
   "src/modules/authorization/evaluate-resource-policy.integration.spec.ts",
   "src/modules/authorization/route-authorization-negative-matrix.integration.spec.ts",
+  "src/modules/rbac/seed-default-role-permissions.integration.spec.ts",
   "src/modules/routing/routing-critical-matrix.integration.spec.ts",
   "src/modules/service-onboarding/service-onboarding-routing-coverage.integration.spec.ts",
   "src/modules/templates/management-read-scope.integration.spec.ts",

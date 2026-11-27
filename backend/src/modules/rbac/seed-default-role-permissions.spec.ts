@@ -4,7 +4,11 @@ import {
   defaultRolePermissionKeys,
   permissionKeys,
 } from '../authorization/authorization.constants';
-import { seedDefaultRolePermissions } from './seed-default-role-permissions';
+import {
+  computeSeedPlanFingerprint,
+  seedDefaultRolePermissions,
+  type SeededRolePermissions,
+} from './seed-default-role-permissions';
 
 type FakeRole = { id: string; key: string; name: string; isSystem: boolean };
 type FakePermission = { id: string; key: string };
@@ -348,5 +352,74 @@ describe('seedDefaultRolePermissions', () => {
     expect(result.addedTotal).toBeGreaterThan(0);
     expect(fake.roleNames()).toEqual([]);
     expect(fake.permissionKeysOf(authorizationRoleKeys.admin)).toEqual([]);
+  });
+});
+
+/*
+  W2.35 (`BA-rbac-08`): the fingerprint is what the operator confirms, so it has
+  to follow the plan and nothing else — same writes, same hash, regardless of
+  ordering.
+*/
+describe('computeSeedPlanFingerprint (BA-rbac-08)', () => {
+  const plan = (
+    roles: readonly {
+      roleKey: string;
+      roleCreated?: boolean;
+      addedPermissionKeys?: readonly string[];
+    }[],
+  ): SeededRolePermissions[] =>
+    roles.map((role) => ({
+      roleKey: role.roleKey,
+      roleName: role.roleKey,
+      roleCreated: role.roleCreated ?? false,
+      existing: 3,
+      added: (role.addedPermissionKeys ?? []).length,
+      addedPermissionKeys: [...(role.addedPermissionKeys ?? [])],
+    }));
+
+  it('is stable for the same plan and independent of ordering', () => {
+    const left = plan([
+      { roleKey: 'ADMIN', addedPermissionKeys: ['ticket.read', 'ticket.update'] },
+      { roleKey: 'AGENT', addedPermissionKeys: ['ticket.read'] },
+    ]);
+    const right = plan([
+      { roleKey: 'AGENT', addedPermissionKeys: ['ticket.read'] },
+      { roleKey: 'ADMIN', addedPermissionKeys: ['ticket.update', 'ticket.read'] },
+    ]);
+    expect(computeSeedPlanFingerprint(left)).toBe(
+      computeSeedPlanFingerprint(right),
+    );
+  });
+
+  it('changes when the plan would write something different', () => {
+    const base = computeSeedPlanFingerprint(
+      plan([{ roleKey: 'AGENT', addedPermissionKeys: ['ticket.read'] }]),
+    );
+    const extraKey = computeSeedPlanFingerprint(
+      plan([
+        {
+          roleKey: 'AGENT',
+          addedPermissionKeys: ['ticket.read', 'ticket.delete'],
+        },
+      ]),
+    );
+    const roleCreated = computeSeedPlanFingerprint(
+      plan([
+        {
+          roleKey: 'AGENT',
+          roleCreated: true,
+          addedPermissionKeys: ['ticket.read'],
+        },
+      ]),
+    );
+    expect(new Set([base, extraKey, roleCreated]).size).toBe(3);
+  });
+
+  it('is a sha256 hex digest, so it survives copy/paste into --confirm', () => {
+    expect(
+      computeSeedPlanFingerprint(
+        plan([{ roleKey: 'AGENT', addedPermissionKeys: [] }]),
+      ),
+    ).toMatch(/^[0-9a-f]{64}$/);
   });
 });

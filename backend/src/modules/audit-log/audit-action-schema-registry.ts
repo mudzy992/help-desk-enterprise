@@ -34,7 +34,9 @@ export const auditActionSchemaRegistry: Readonly<Record<string, AuditActionSchem
   [auditLogActions.supportBundleExport]: schema(['parts'], 'pseudonymous'),
   [auditLogActions.notificationReceipt]: schema(['equals', 'eventId', 'kind', 'path']),
   [auditLogActions.ticketRemoteAcknowledged]: schema(['event']),
-  [auditLogActions.rolePermissionReplace]: schema(['addedPermissionKeys', 'nextPermissionKeys', 'previewedAt', 'previousPermissionKeys', 'reason', 'roleKey', 'via']),
+  // W2.35 (`BA-rbac-08`): the seeder records the operator's consent (`intent`) and
+  // the reviewed plan (`planFingerprint`) next to the links it added.
+  [auditLogActions.rolePermissionReplace]: schema(['addedPermissionKeys', 'intent', 'nextPermissionKeys', 'planFingerprint', 'previewedAt', 'previousPermissionKeys', 'reason', 'roleKey', 'via']),
   [auditLogActions.userRoleAssign]: schema(['organizationalUnitId', 'roleKey', 'serviceId', 'userId'], 'restricted'),
   [auditLogActions.userRoleRemove]: schema(['organizationalUnitId', 'roleKey', 'serviceId', 'userId'], 'restricted'),
   // W2.26 (`BA-users-02`): the account's creation entry records how the temporary

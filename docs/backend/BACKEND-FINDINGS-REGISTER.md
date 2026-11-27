@@ -131,7 +131,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 03 | `rbac` | `BA-rbac-05` | P2 | Post-commit invalidacija nosilaca nije durable niti fail-closed | zatvoreno (W2.32) | [03-rbac.md](audits/03-rbac.md) |
 | 03 | `rbac` | `BA-rbac-06` | P3 | Preview broj pogođenih broji assignment redove, ne jedinstvene korisnike | zatvoreno (W2.33) | [03-rbac.md](audits/03-rbac.md) |
 | 03 | `rbac` | `BA-rbac-07` | P3 | DTO nema eksplicitne limite za broj/dužinu permissiona i preview token | zatvoreno (W2.34) | [03-rbac.md](audits/03-rbac.md) |
-| 03 | `rbac` | `BA-rbac-08` | P3 | Aditivni seeder može vratiti namjerno uklonjena prava bez apply-time baseline potvrde | otvoreno | [03-rbac.md](audits/03-rbac.md) |
+| 03 | `rbac` | `BA-rbac-08` | P3 | Aditivni seeder može vratiti namjerno uklonjena prava bez apply-time baseline potvrde | zatvoreno (W2.35) | [03-rbac.md](audits/03-rbac.md) |
 | 04 | `users` | `BA-users-01` | P1 | ADMIN users control plane ignoriše OU/service scope | zatvoreno (W2.10) | [04-users.md](audits/04-users.md) |
 | 04 | `users` | `BA-users-02` | P1 | Kreiranje usera/passworda/role nije atomsko i autorizacija role dolazi prekasno | zatvoreno (W2.26) | [04-users.md](audits/04-users.md) |
 | 04 | `users` | `BA-users-03` | P1 | Deactivate i identity transitioni ne opozivaju sesije/MFA lifecycle | zatvoreno (W2.22) | [04-users.md](audits/04-users.md) |
@@ -930,7 +930,7 @@ Targeted `RoleGuard` testovi su potvrdili da service-scoped i OU-scoped ADMIN ve
 Generisano iz 44 audit tabele: `npm run audit:traceability --prefix backend -- --write`. Ne uređivati ručno.
 
 - Ukupno: **698** (P1 175 · P2 371 · P3 152)
-- Zatvoreno: **363**
-- Otvoreno: **335** (P1 74 / P2 183 / P3 78)
+- Zatvoreno: **364**
+- Otvoreno: **334** (P1 74 / P2 183 / P3 77)
 - Val 7: **111 / 111** zatvoreno, otvoreno **0** (P1 0 / P2 0 / P3 0)
 <!-- findings-totals:end -->
