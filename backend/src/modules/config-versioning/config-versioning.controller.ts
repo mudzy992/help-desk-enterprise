@@ -17,7 +17,6 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
 import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
-import { AdminReadOperation } from '../authorization/admin-read-operation.decorator';
 import { permissionKeys } from '../authorization/authorization.constants';
 import { RequirePermissions } from '../authorization/require-permissions.decorator';
 import { RoleGuard } from '../authorization/role.guard';
@@ -58,7 +57,6 @@ export class ConfigVersioningController {
 
   /** Paket 2.9 (K4): dry run of an import — resolution report, nothing written. */
   @Post('import/preview')
-  @AdminReadOperation()
   @RequirePermissions(permissionKeys.configVersionImport)
   @UseInterceptors(FileInterceptor('file', { limits: { files: 1, fileSize: configPackageMaxBytes } }))
   previewImport(
@@ -148,7 +146,6 @@ export class ConfigVersioningController {
   }
 
   @Post(':id/validate')
-  @AdminReadOperation()
   @RequirePermissions(permissionKeys.settingsWrite)
   validate(@Param('id') id: string) {
     return this.execute(() => this.configVersioningService.validate(id));
@@ -190,7 +187,6 @@ export class ConfigVersioningController {
   }
 
   @Post(':id/shadow')
-  @AdminReadOperation()
   @RequirePermissions(permissionKeys.settingsWrite)
   shadow(@Param('id') id: string) {
     return this.execute(() => this.configVersioningService.shadow(id));

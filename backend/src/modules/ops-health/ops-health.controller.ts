@@ -1,7 +1,6 @@
 import { Body, Controller, Delete, Get, Header, HttpCode, Param, Post, Query, Req, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
 import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
-import { AdminReadOperation } from '../authorization/admin-read-operation.decorator';
 import { permissionKeys } from '../authorization/authorization.constants';
 import { RequirePermissions } from '../authorization/require-permissions.decorator';
 import { RoleGuard } from '../authorization/role.guard';
@@ -23,7 +22,6 @@ export class OpsHealthController {
 
   @Get('health')
   @RequirePermissions(permissionKeys.opsHealthView)
-  @AdminReadOperation()
   @Header('Cache-Control', 'no-store')
   overview() {
     return this.service.overview();
@@ -31,7 +29,6 @@ export class OpsHealthController {
 
   @Get('alerts')
   @RequirePermissions(permissionKeys.opsHealthView)
-  @AdminReadOperation()
   @Header('Cache-Control', 'no-store')
   history(@Query() query: OpsAlertHistoryQueryDto) {
     return this.service.history(query.status ?? 'resolved', query.limit ?? 100);

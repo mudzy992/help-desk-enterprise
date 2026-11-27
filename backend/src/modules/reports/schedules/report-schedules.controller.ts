@@ -23,7 +23,6 @@ import {
   type AuthenticatedHttpRequest,
 } from '../../authentication/authenticated-request';
 import { SessionAuthenticationGuard } from '../../authentication/session-authentication.guard';
-import { AdminReadOperation } from '../../authorization/admin-read-operation.decorator';
 import { authorizationRoleKeys, permissionKeys } from '../../authorization/authorization.constants';
 import { RequirePermissions } from '../../authorization/require-permissions.decorator';
 import { RequireRoles } from '../../authorization/require-roles.decorator';
@@ -51,14 +50,12 @@ export class ReportSchedulesController {
   constructor(private readonly schedulesService: ReportSchedulesService) {}
 
   @Get()
-  @AdminReadOperation()
   @Header('Cache-Control', 'no-store')
   list(@Req() request: AuthenticatedHttpRequest) {
     return this.call(() => this.schedulesService.list(actorOf(request)));
   }
 
   @Get('recipient-candidates')
-  @AdminReadOperation()
   @Header('Cache-Control', 'no-store')
   candidates(@Query() query: RecipientCandidatesQueryDto, @Req() request: AuthenticatedHttpRequest) {
     return this.call(() =>
@@ -72,7 +69,6 @@ export class ReportSchedulesController {
   }
 
   @Get(':id')
-  @AdminReadOperation()
   @Header('Cache-Control', 'no-store')
   get(@Param('id') id: string, @Req() request: AuthenticatedHttpRequest) {
     return this.call(() => this.schedulesService.get(actorOf(request), id));
@@ -116,7 +112,6 @@ export class ReportSchedulesController {
   }
 
   @Get(':id/runs')
-  @AdminReadOperation()
   @Header('Cache-Control', 'no-store')
   runs(@Param('id') id: string, @Req() request: AuthenticatedHttpRequest) {
     return this.call(() => this.schedulesService.runs(actorOf(request), id));
@@ -124,7 +119,6 @@ export class ReportSchedulesController {
 
   @Post(':id/send-test')
   @HttpCode(200)
-  @AdminReadOperation()
   sendTest(@Param('id') id: string, @Req() request: AuthenticatedHttpRequest) {
     return this.call(() => this.schedulesService.sendTest(actorOf(request), id));
   }

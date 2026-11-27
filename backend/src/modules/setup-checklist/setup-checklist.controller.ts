@@ -1,7 +1,6 @@
 import { Controller, ForbiddenException, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
 import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
-import { AdminReadOperation } from '../authorization/admin-read-operation.decorator';
 import {
   authorizationRoleKeys,
   permissionKeys,
@@ -29,7 +28,6 @@ export class SetupChecklistController {
   constructor(private readonly setupChecklistService: SetupChecklistService) {}
 
   @Get()
-  @AdminReadOperation()
   getStatus(): Promise<SetupChecklistStatus> {
     return this.setupChecklistService.getStatus();
   }

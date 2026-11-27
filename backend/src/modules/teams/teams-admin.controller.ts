@@ -4,7 +4,6 @@ import { ArrayMaxSize, IsArray, IsBoolean, IsIn, IsInt, IsObject, IsOptional, Is
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AUTHENTICATED_PRINCIPAL_REQUEST_KEY, type AuthenticatedHttpRequest } from '../authentication/authenticated-request';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
-import { AdminReadOperation } from '../authorization/admin-read-operation.decorator';
 import { permissionKeys } from '../authorization/authorization.constants';
 import { RequirePermissions } from '../authorization/require-permissions.decorator';
 import { RoleGuard } from '../authorization/role.guard';
@@ -91,7 +90,6 @@ export class TeamsAdminController {
 
   @Get('admin/status')
   @RequirePermissions(permissionKeys.integrationsTeamsManage)
-  @AdminReadOperation()
   @Header('Cache-Control', 'no-store')
   status() {
     return this.service.status();
@@ -106,7 +104,6 @@ export class TeamsAdminController {
 
   @Get('admin/package')
   @RequirePermissions(permissionKeys.integrationsTeamsManage)
-  @AdminReadOperation()
   async appPackage(@Query() query: TeamsPackageQueryDto): Promise<StreamableFile> {
     const file = await this.service.appPackage(query.locale ?? 'bs');
     return new StreamableFile(file.content, { type: 'application/zip', disposition: `attachment; filename="${file.fileName}"`, length: file.content.length });
@@ -114,7 +111,6 @@ export class TeamsAdminController {
 
   @Get('admin/channels')
   @RequirePermissions(permissionKeys.integrationsTeamsManage)
-  @AdminReadOperation()
   @Header('Cache-Control', 'no-store')
   channels() {
     return this.service.channels();
@@ -134,7 +130,6 @@ export class TeamsAdminController {
 
   @Get('admin/simulator/messages')
   @RequirePermissions(permissionKeys.integrationsTeamsManage)
-  @AdminReadOperation()
   @Header('Cache-Control', 'no-store')
   async simulatorMessages(@Query() query: TeamsSimulatorQueryDto) {
     return this.service.simulatorMessages(await this.service.simulatorConversationId(query.userId, query.scope), query.limit ?? 50);

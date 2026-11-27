@@ -10,7 +10,6 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
-import { AdminReadOperation } from '../authorization/admin-read-operation.decorator';
 import { authorizationRoleKeys } from '../authorization/authorization.constants';
 import { RequireRoles } from '../authorization/require-roles.decorator';
 import { RoleGuard } from '../authorization/role.guard';
@@ -48,19 +47,16 @@ export class DirectorySyncController {
   ) {}
 
   @Get('status')
-  @AdminReadOperation()
   getStatus(): Promise<DirectorySyncStatusResponse> {
     return this.directorySyncStatusService.getStatus();
   }
 
   @Get('directory-users')
-  @AdminReadOperation()
   listDirectoryUsers(): Promise<readonly DirectoryUser[]> {
     return this.directorySyncService.listDirectoryUsersForLinking();
   }
 
   @Post('read')
-  @AdminReadOperation()
   read(@Body() body: DirectoryReadDto): Promise<DirectoryReadResult> {
     return this.directorySyncService.read({
       operation: body.operation,
@@ -71,13 +67,11 @@ export class DirectorySyncController {
 
   // Paket 1.8 (A4): LDAPS test connection, dry-run, apply and history.
   @Post('test-connection')
-  @AdminReadOperation()
   testConnection(@Req() request: AuthenticatedHttpRequest) {
     return mapped(() => this.directoryFullSyncService.testConnection(actorOf(request)));
   }
 
   @Post('dry-run')
-  @AdminReadOperation()
   dryRun(@Req() request: AuthenticatedHttpRequest) {
     return mapped(() => this.directoryFullSyncService.dryRun(actorOf(request)));
   }
@@ -88,13 +82,11 @@ export class DirectorySyncController {
   }
 
   @Get('runs')
-  @AdminReadOperation()
   listRuns() {
     return mapped(() => this.directoryFullSyncService.listRuns());
   }
 
   @Get('runs/:runId/plan')
-  @AdminReadOperation()
   getRunPlan(@Param('runId') runId: string) {
     return mapped(() => this.directoryFullSyncService.getRunPlan(runId));
   }

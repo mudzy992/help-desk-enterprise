@@ -16,7 +16,6 @@ import {
 } from '@nestjs/common';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
 import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
-import { AdminReadOperation } from '../authorization/admin-read-operation.decorator';
 import {
   authorizationRoleKeys,
   permissionKeys,
@@ -127,7 +126,6 @@ export class ReportsController {
   }
 
   @Get('bottlenecks')
-  @AdminReadOperation()
   @Header('Cache-Control', 'no-store')
   bottleneck(@Query() query: ReportScopeQueryDto) {
     return this.reportsService.bottleneck(query).catch((error) => {
@@ -136,7 +134,6 @@ export class ReportsController {
   }
 
   @Get('dashboard')
-  @AdminReadOperation()
   @Header('Cache-Control', 'no-store')
   dashboard(@Query() query: ReportScopeQueryDto) {
     return this.reportsService.dashboard(query).catch((error) => {
@@ -146,7 +143,6 @@ export class ReportsController {
 
   /** Paket 2.5 (§4.4): every trend series in one response. */
   @Get('trends')
-  @AdminReadOperation()
   @Header('Cache-Control', 'no-store')
   trends(@Query() query: ReportTrendsQueryDto) {
     return this.trendsService.trends(query).catch((error) => {
@@ -185,7 +181,6 @@ export class ReportsController {
    */
   @Post('pdf-print-intents')
   @HttpCode(204)
-  @AdminReadOperation()
   async recordPdfPrintIntent(
     @Body() body: RecordReportPdfPrintIntentDto,
     @Req() request: AuthenticatedHttpRequest,
