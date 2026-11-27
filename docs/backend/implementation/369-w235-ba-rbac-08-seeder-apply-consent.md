@@ -133,21 +133,30 @@ $ npx tsc --noEmit   # bez nove greške (postojeća announcement-delivery.spec.t
 
 | Provjera | Ishod |
 | --- | --- |
-| `npm run audit:traceability` | vidi §6 (broj stanja poslije `--write`) |
-| `check-backend-findings`, `check-docs-content` | ✓ |
+| `npm run audit:traceability -- --write` | **698 nalaza, 364 zatvoreno / 334 otvoreno** |
+| `npm run audit:traceability` (guard) | ✓ `698/698`, `P1=175 P2=371 P3=152`, registar usklađen |
+| `npm run wiring:check` | ✓ 99 kontrolera, 634 rute |
+| `npm run lint` | ✓ 0 grešaka (6 postojećih upozorenja u `problems`/`sla` specovima) |
+| `node scripts/check-docs-content.mjs` | ✓ 32 stranice, 8 prevoda, 10 provjera |
 | frontend | **nije diran** — komanda je CLI, nema UI promjene |
 
 ### 3.5 CI
 
+Push run [`46068933840`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/46068933840) (head `2cf42fb6`):
+
 | Posao | Ishod |
 | --- | --- |
-| `Backend build + test` | vidi tabelu na kraju |
-| `Backend PostgreSQL + Redis integration` | vidi tabelu na kraju |
-| `Frontend build + test` | vidi tabelu na kraju |
-| `Backend container + supply chain` | vidi tabelu na kraju |
-| `Docs guard` | vidi tabelu na kraju |
-| `E2E critical flows` | vidi tabelu na kraju |
-| `CI gate` | vidi tabelu na kraju |
+| `Backend build + test` | ✓ 6m41s (uključuje 11 novih testova i traceability guard) |
+| `Frontend build + test` | ✓ 4m38s |
+| `Backend container + supply chain` | ✓ 3m50s |
+| `Docs guard` | ✓ 9s |
+| `CI gate` | ✓ 5s |
+| `Backend PostgreSQL + Redis integration` | **skipped** — push ugovor; real-DB shard se izvršava u `pull_request` runu (PR #53) |
+| `E2E critical flows` | **skipped** — push ugovor; smoke `01,02,03,15,22,54` ide u `pull_request` runu (PR #53) |
+
+Push run ne dokazuje real-DB shard niti browser tok, pa se ovaj paket ne spaja dok `pull_request` run na istom headu ne
+bude zelen — uključujući `Backend PostgreSQL + Redis integration` (novi
+`seed-default-role-permissions.integration.spec.ts` shard) i `E2E critical flows`.
 
 ## 4. Šta paket mijenja u ponašanju
 
