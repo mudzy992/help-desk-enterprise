@@ -3468,7 +3468,7 @@
     {
       "id": "BA-rbac-08",
       "severity": "P3",
-      "status": "otvoreno",
+      "status": "zatvoreno (W2.35, [369](../implementation/369-w235-ba-rbac-08-seeder-apply-consent.md))",
       "source": "03-rbac.md",
       "owner": "WS-A",
       "wave": 2

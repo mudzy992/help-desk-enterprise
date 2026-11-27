@@ -134,7 +134,7 @@ Blokada je isti reproducibility nalaz evidentiran u prethodna dva modula. Nije p
 | BA-rbac-05 | P2       | Post-commit invalidacija nosilaca nije durable niti fail-closed                       | zatvoreno (W2.32, [366](../implementation/366-w232-ba-rbac-05-durable-holder-invalidation.md)) | M        |
 | BA-rbac-06 | P3       | Preview broj pogođenih broji assignment redove, ne jedinstvene korisnike              | zatvoreno (W2.33, [367](../implementation/367-w233-ba-rbac-06-distinct-affected-users.md)) | S        |
 | BA-rbac-07 | P3       | DTO nema eksplicitne limite za broj/dužinu permissiona i preview token                | zatvoreno (W2.34, [368](../implementation/368-w234-ba-rbac-07-dto-limits.md)) | S        |
-| BA-rbac-08 | P3       | Aditivni seeder može vratiti namjerno uklonjena prava bez apply-time baseline potvrde | otvoreno | M        |
+| BA-rbac-08 | P3       | Aditivni seeder može vratiti namjerno uklonjena prava bez apply-time baseline potvrde | zatvoreno (W2.35, [369](../implementation/369-w235-ba-rbac-08-seeder-apply-consent.md)) | M        |
 
 ## 10. Detaljni nalazi
 
@@ -247,6 +247,14 @@ Blokada je isti reproducibility nalaz evidentiran u prethodna dva modula. Nije p
 - **Korekcija:** zahtijevati apply confirmation token/baseline hash ili eksplicitni `--restore-defaults`; audit treba nositi operator intent i baseline.
 - **Acceptance:** običan maintenance run ne vraća policy override bez eksplicitne potvrde.
 - **Owner:** backend operations/RBAC owner.
+- **Zatvoreno u W2.35** ([369](../implementation/369-w235-ba-rbac-08-seeder-apply-consent.md)): plan je jedinica
+  saglasnosti — `computeSeedPlanFingerprint` daje `sha256` nad onim što bi apply **uradio** (role, `roleCreated`,
+  sortirani `addedPermissionKeys`). CLI zato ima tri načina rada: `--dry-run` (ispiše plan + fingerprint, ne piše),
+  `--confirm=<hash>` (primijeni tačno pregledani plan; drugi hash → odbija) i `--restore-defaults` (svjesno vraćanje
+  defaulta). Bez flaga run izlazi sa kodom 2 i **nula upisa**, a audit `rolePermissionReplace` nosi `intent` i
+  `planFingerprint`. Dokaz: 8 unit testova pravila + 3 testa identiteta plana + real-DB shard
+  `seed-default-role-permissions.integration.spec.ts` (uklonjen link ostaje uklonjen bez potvrde; potvrđeni plan vraća
+  tačno taj link; stara potvrda pada kao `fingerprint-mismatch`).
 
 ## 11. Baseline score
 
@@ -316,7 +324,7 @@ Blokada je isti reproducibility nalaz evidentiran u prethodna dva modula. Nije p
 | BA-rbac-05 | invalidator/Redis fault       | fence u transakciji: payload stare verzije odbijen; outbox retry (`PENDING`/`attempts`) do `SUCCEEDED`, bez drugog bumpa |
 | BA-rbac-06 | dupli scoped assignment       | `groupBy` broji osobe, `count` dodjele; uzorci jedinstveni po osobi (real-DB: 2 osobe / 3 dodjele) |
 | BA-rbac-07 | oversized DTO matrica         | 400 kroz globalni pipe prije servisa (73 prava / 121-znakovni ključ / 32 769-znakovni token), granica prolazi |
-| BA-rbac-08 | dry-run pa state drift        | apply odbijen bez nove potvrde             |
+| BA-rbac-08 | dry-run pa state drift        | bez `--confirm`/`--restore-defaults` nula upisa (real-DB: uklonjen link ostaje uklonjen); stara potvrda → `fingerprint-mismatch`; audit nosi `intent` + `planFingerprint` |
 
 ## 14. Konačna presuda
 

@@ -10,7 +10,15 @@ import {
   auditLogEntityTypes,
 } from '../modules/audit-log/audit-log.constants';
 import { recordAuditEntry } from '../modules/audit-log/record-audit-entry';
-import { seedDefaultRolePermissions } from '../modules/rbac/seed-default-role-permissions';
+import {
+  computeSeedPlanFingerprint,
+  seedDefaultRolePermissions,
+  type SeedDefaultRolePermissionsResult,
+} from '../modules/rbac/seed-default-role-permissions';
+import {
+  evaluateSeedApplyRequest,
+  parseSeedCommandRequest,
+} from '../modules/rbac/seeder-apply-intent';
 
 /*
   Val 0 (finding M4/B1): existing installations were created before the system
@@ -18,28 +26,80 @@ import { seedDefaultRolePermissions } from '../modules/rbac/seed-default-role-pe
   This one-off command fills the default role -> permission mapping for the seven
   system roles.
 
-  Additive and idempotent: it creates missing roles, permission rows and links and
-  never deletes. A permission an administrator removed on purpose therefore comes
-  back if the command is run again - run `--dry-run` first and read the list.
+  W2.35 (`BA-rbac-08`): the command is additive, so re-running it restores links an
+  administrator deleted on purpose. That is a policy decision, not routine
+  maintenance, and it now needs the operator to say so:
 
     node dist/src/cli/seed-default-role-permissions.js --dry-run
-    node dist/src/cli/seed-default-role-permissions.js
+      -> prints the plan and its fingerprint; writes nothing
+    node dist/src/cli/seed-default-role-permissions.js --confirm=<fingerprint>
+      -> applies exactly the reviewed plan; refuses if the matrix changed since
+    node dist/src/cli/seed-default-role-permissions.js --restore-defaults
+      -> applies the defaults deliberately, including links removed on purpose
+
+  Without one of those, the command refuses (exit code 2) and writes nothing.
 */
 
+const refusedExitCode = 2;
+
+function printPlan(result: SeedDefaultRolePermissionsResult): void {
+  for (const role of result.roles) {
+    const created = role.roleCreated ? ' (role created)' : '';
+    console.log(
+      `${role.roleKey}${created}: existing ${role.existing}, ` +
+        `would add ${role.added}` +
+        (role.addedPermissionKeys.length === 0
+          ? ''
+          : ` [${[...role.addedPermissionKeys].sort().join(', ')}]`),
+    );
+  }
+}
+
 async function main(): Promise<number> {
-  const dryRun = process.argv.includes('--dry-run');
+  const request = parseSeedCommandRequest(process.argv);
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
     console.error('DATABASE_URL is required');
-    return 2;
+    return refusedExitCode;
   }
-  const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
-  let redis: ReturnType<typeof createRedisClient> | null = null;
+  const prisma = new PrismaClient({
+    adapter: new PrismaPg({ connectionString }),
+  });
   const prismaService = prisma as unknown as PrismaService;
-  let invalidatePrincipals:
-    | ((userIds: readonly string[]) => Promise<unknown>)
-    | undefined;
-  if (!dryRun) {
+  try {
+    // The plan is always read first: it is both the dry-run output and the thing
+    // the confirmation is compared against.
+    const plan = await seedDefaultRolePermissions(prismaService, {
+      dryRun: true,
+    });
+    const reviewedFingerprint = computeSeedPlanFingerprint(plan.roles);
+
+    if (request.kind === 'dry-run') {
+      printPlan(plan);
+      console.log(`plan fingerprint: ${reviewedFingerprint}`);
+      console.log(
+        plan.addedTotal === 0
+          ? 'dry run - nothing written; every default link already exists'
+          : 'dry run - nothing written; re-run with --confirm=' +
+            reviewedFingerprint +
+            ' to apply exactly this plan, or --restore-defaults to apply the ' +
+            'defaults even where an administrator removed them on purpose',
+      );
+      return 0;
+    }
+
+    const decision = evaluateSeedApplyRequest(request, reviewedFingerprint);
+    if (!decision.allowed) {
+      printPlan(plan);
+      console.log(`plan fingerprint: ${reviewedFingerprint}`);
+      console.error(`role_permission_seed_refused: ${decision.message}`);
+      return refusedExitCode;
+    }
+
+    let redis: ReturnType<typeof createRedisClient> | null = null;
+    let invalidatePrincipals:
+      | ((userIds: readonly string[]) => Promise<unknown>)
+      | undefined;
     try {
       redis = createRedisClient(loadRedisConfiguration(process.env));
       redis.on('error', (error: Error) => {
@@ -79,49 +139,49 @@ async function main(): Promise<number> {
         });
       };
     }
-  }
-  let addedTotal = 0;
-  try {
-    const result = await seedDefaultRolePermissions(prismaService, {
-      dryRun,
+
+    const applied = await seedDefaultRolePermissions(prismaService, {
       ...(invalidatePrincipals === undefined ? {} : { invalidatePrincipals }),
     });
-    addedTotal = result.addedTotal;
-    for (const role of result.roles) {
-      const created = role.roleCreated ? ' (role created)' : '';
-      console.log(
-        `${role.roleKey}${created}: existing ${role.existing}, ` +
-          `${dryRun ? 'would add' : 'added'} ${role.added}`,
+    printPlan(applied);
+    const appliedFingerprint = computeSeedPlanFingerprint(applied.roles);
+    if (appliedFingerprint !== reviewedFingerprint) {
+      // The matrix moved between the review and the write. The write is already
+      // committed, so this is recorded rather than undone — the audit entry
+      // carries both values, which is what a later review needs.
+      console.warn(
+        `role_permission_seed_plan_drift reviewed=${reviewedFingerprint} applied=${appliedFingerprint}`,
       );
     }
-    if (!dryRun) {
-      for (const role of result.roles) {
-        if (role.added === 0) {
-          continue;
-        }
-        await recordAuditEntry(prisma as unknown as PrismaService, {
-          action: auditLogActions.rolePermissionReplace,
-          entityType: auditLogEntityTypes.role,
-          entityId: role.roleKey,
-          actorUserId: null,
-          metadata: {
-            roleKey: role.roleKey,
-            addedPermissionKeys: [...role.addedPermissionKeys],
-            via: 'seed-default-role-permissions',
-          },
-        });
+    for (const role of applied.roles) {
+      if (role.added === 0) {
+        continue;
       }
+      await recordAuditEntry(prisma as unknown as PrismaService, {
+        action: auditLogActions.rolePermissionReplace,
+        entityType: auditLogEntityTypes.role,
+        entityId: role.roleKey,
+        actorUserId: null,
+        metadata: {
+          roleKey: role.roleKey,
+          addedPermissionKeys: [...role.addedPermissionKeys].sort(),
+          via: 'seed-default-role-permissions',
+          // W2.35 (`BA-rbac-08`): the audit says *how* the operator agreed and
+          // which plan they agreed to, not only that links were added.
+          intent: decision.consent,
+          planFingerprint: reviewedFingerprint,
+        },
+      });
     }
+    redis?.disconnect();
+    console.log(
+      `roles updated: ${applied.addedTotal > 0 ? '' : 'none, '}${applied.addedTotal} permission link(s) added ` +
+        `(intent: ${decision.consent}, plan: ${reviewedFingerprint})`,
+    );
+    return 0;
   } finally {
     await prisma.$disconnect();
-    redis?.disconnect();
   }
-  console.log(
-    `${dryRun ? 'dry run - nothing written; ' : ''}roles updated: ` +
-      `${addedTotal > 0 ? '' : 'none, '}${addedTotal} permission link(s) ` +
-      `${dryRun ? 'would be added' : 'added'}`,
-  );
-  return 0;
 }
 
 main().then(

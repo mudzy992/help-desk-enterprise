@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import type { PrismaService } from '../../common/prisma/prisma.service';
 import type { PrincipalBatchInvalidationHook } from '../../common/principal-context/principal-context.types';
 import {
@@ -22,8 +23,11 @@ import { RbacError } from './rbac.error';
  * The operation is additive and idempotent: it creates missing system roles,
  * missing `Permission` rows and missing `RolePermission` links, and never
  * deletes anything. A link an administrator removed on purpose therefore comes
- * back if the CLI is run again — which is why the CLI has `--dry-run` and prints
- * the exact roles and counts it would touch.
+ * back if this function runs again — during installation that is correct (there
+ * is no earlier decision to preserve), but as maintenance it would silently undo
+ * a policy. W2.35 (`BA-rbac-08`) therefore puts the decision in front of the
+ * write: `computeSeedPlanFingerprint` names the plan, and the CLI only applies it
+ * with `--confirm=<fingerprint>` or `--restore-defaults` (`seeder-apply-intent.ts`).
  */
 export type SeededRolePermissions = {
   readonly roleKey: string;
@@ -51,6 +55,29 @@ export type SeedDefaultRolePermissionsOptions = {
 };
 
 const systemRoleKeys = Object.keys(defaultRolePermissionKeys);
+
+/**
+ * W2.35 (`BA-rbac-08`): the reviewed plan, as one hash.
+ *
+ * It covers exactly what an apply would *do* — which role is created, and which
+ * permission keys would be linked — sorted so the fingerprint does not depend on
+ * iteration order. Two runs that would write the same thing produce the same
+ * value; any change between the dry run and the apply (an added key, a role
+ * created meanwhile, a different `--role` selection) produces a different one and
+ * the confirmation stops matching.
+ */
+export function computeSeedPlanFingerprint(
+  plan: readonly SeededRolePermissions[],
+): string {
+  const canonical = plan
+    .map((role) => ({
+      roleKey: role.roleKey,
+      roleCreated: role.roleCreated,
+      add: [...role.addedPermissionKeys].sort(),
+    }))
+    .sort((left, right) => left.roleKey.localeCompare(right.roleKey));
+  return createHash('sha256').update(JSON.stringify(canonical)).digest('hex');
+}
 
 export async function seedDefaultRolePermissions(
   prisma: PrismaService,
