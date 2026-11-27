@@ -106,7 +106,10 @@ deduplikacijom uzoraka.
 
 ### 3.5 CI
 
-PR #51 — vidi §6.
+PR #51, run [`46050739709`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/46050739709): svi poslovi
+zeleni poslije jednog ponovnog pokretanja. Jedini crveni posao bio je `Backend container + supply chain`, i to na
+infrastrukturi, ne na kodu — `Generate image SBOM` je pao sa „The Syft installer failed to install v1.54.0"; isti
+posao je prošao u prethodnim runovima, a poslije `rerun --failed` je zelen (4m32s).
 
 ## 4. Šta paket mijenja u ponašanju
 
@@ -140,10 +143,13 @@ PR #51 — vidi §6.
 
 | Posao | Ishod |
 | --- | --- |
-| `Backend build + test` | _popunjava se_ |
-| `Backend PostgreSQL + Redis integration` (novi distinct-users spec) | _popunjava se_ |
-| `Frontend build + test` | _popunjava se_ |
-| `Backend container + supply chain` | _popunjava se_ |
-| `Docs guard` | _popunjava se_ |
-| `E2E critical flows` | _popunjava se_ |
-| `CI gate` | _popunjava se_ |
+| `Backend build + test` (uključuje traceability guard) | ✓ 6m55s |
+| `Backend PostgreSQL + Redis integration` (novi distinct-users spec) | ✓ 22m58s |
+| `Frontend build + test` (`tsc -b`, vitest, budžeti) | ✓ 3m39s |
+| `Backend container + supply chain` | ✓ 4m32s (poslije rerun-a) |
+| `Docs guard` | ✓ 18s |
+| `E2E critical flows` | ✓ 9m29s |
+| `CI gate` | ✓ |
+
+Push run je zelen sa integracijom i E2E **skipped** (CI ugovor); Perf smoke
+[`46050739742`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/46050739742) ✓.
