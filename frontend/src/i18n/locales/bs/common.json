@@ -1683,6 +1683,7 @@
     "errorNotFound": "Uloga ili permisija nije pronađena.",
     "errorPreviewRequired": "Pokrenite pregled uticaja prije snimanja promjene.",
     "errorPreviewStale": "Pregled uticaja je zastario. Pokrenite ga ponovo pa sačuvajte.",
+    "errorPreviewConsumed": "Taj pregled uticaja je već iskorišten. Pokrenite ga ponovo pa sačuvajte.",
     "errorGeneric": "Operacija nad permisijama uloga nije uspjela.",
     "catalog": {
       "categories": {

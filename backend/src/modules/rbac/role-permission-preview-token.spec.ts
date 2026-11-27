@@ -27,8 +27,10 @@ describe('role permission preview token', () => {
     actorUserId: 'super-1',
   };
 
+  const jti = '11111111-2222-3333-4444-555555555555';
   const sign = (
     overrides: Partial<{
+      jti: string;
       roleKey: string;
       permissionKeys: readonly string[];
       baselinePermissionKeys: readonly string[];
@@ -38,6 +40,7 @@ describe('role permission preview token', () => {
   ): string =>
     signRolePermissionPreviewToken(
       {
+        jti: overrides.jti ?? jti,
         roleKey: overrides.roleKey ?? expectation.roleKey,
         permissionKeys: overrides.permissionKeys ?? expectation.permissionKeys,
         baselinePermissionKeys:
@@ -56,6 +59,7 @@ describe('role permission preview token', () => {
     expect(
       verifyRolePermissionPreviewToken(token, expectation, secret, now + 60),
     ).toMatchObject({
+      jti,
       roleKey: 'AGENT',
       permissionKeys: ['settings.write', 'ticket.merge'],
       baselinePermissionKeys: ['ticket.merge'],
@@ -104,6 +108,7 @@ describe('role permission preview token', () => {
     const [, signature] = sign().split('.');
     const forged = Buffer.from(
       JSON.stringify({
+        jti,
         roleKey: 'AGENT',
         permissionKeys: ['settings.write', 'ticket.merge', 'users.write'],
         baselinePermissionKeys: ['ticket.merge'],
@@ -133,6 +138,7 @@ describe('role permission preview token', () => {
     const [, signature] = sign().split('.');
     const forged = Buffer.from(
       JSON.stringify({
+        jti,
         roleKey: 'AGENT',
         permissionKeys: ['settings.write', 'ticket.merge'],
         baselinePermissionKeys: ['settings.write', 'ticket.merge'],
@@ -181,6 +187,55 @@ describe('role permission preview token', () => {
         now,
       );
       throw new Error('expected the legacy token to be rejected');
+    } catch (error) {
+      expect((error as RbacError).code).toBe('PREVIEW_REQUIRED');
+    }
+  });
+
+  it('binds the preview id (jti) — the claim the write consumes', () => {
+    // W2.30 (BA-rbac-02): the token must name the row the write claims, and the
+    // id must be inside the signature like every other field.
+    const token = sign();
+    const verified = verifyRolePermissionPreviewToken(token, expectation, secret, now);
+    expect(verified.jti).toBe(jti);
+
+    const [, signature] = token.split('.');
+    const forged = Buffer.from(
+      JSON.stringify({
+        jti: '99999999-8888-7777-6666-555555555555',
+        roleKey: 'AGENT',
+        permissionKeys: ['settings.write', 'ticket.merge'],
+        baselinePermissionKeys: ['ticket.merge'],
+        actorUserId: 'super-1',
+        issuedAt: now,
+        expiresAt: now + 60,
+      }),
+      'utf8',
+    ).toString('base64url');
+    try {
+      verifyRolePermissionPreviewToken(`${forged}.${signature}`, expectation, secret, now);
+      throw new Error('expected the forged jti to be rejected');
+    } catch (error) {
+      expect((error as RbacError).code).toBe('PREVIEW_REQUIRED');
+    }
+  });
+
+  it('refuses a token without a preview id', () => {
+    const [, signature] = sign().split('.');
+    const withoutJti = Buffer.from(
+      JSON.stringify({
+        roleKey: 'AGENT',
+        permissionKeys: ['settings.write', 'ticket.merge'],
+        baselinePermissionKeys: ['ticket.merge'],
+        actorUserId: 'super-1',
+        issuedAt: now,
+        expiresAt: now + 60,
+      }),
+      'utf8',
+    ).toString('base64url');
+    try {
+      verifyRolePermissionPreviewToken(`${withoutJti}.${signature}`, expectation, secret, now);
+      throw new Error('expected a token without jti to be rejected');
     } catch (error) {
       expect((error as RbacError).code).toBe('PREVIEW_REQUIRED');
     }

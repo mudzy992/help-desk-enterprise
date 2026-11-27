@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { PrismaService } from '../../common/prisma/prisma.service';
 import type { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import { createAuthorizationLookups } from '../authorization/evaluate-authorization-request';
@@ -7,7 +8,10 @@ import { createProposedRolePermissionLookups } from './create-proposed-role-perm
 import { getRolePermissions } from './get-role-permissions';
 import { loadRoleByKey } from './load-role-by-key';
 import type { RolePermissionPreviewResponse } from './rbac.types';
-import { signRolePermissionPreviewToken } from './role-permission-preview-token';
+import {
+  rolePermissionPreviewTokenTtlSeconds,
+  signRolePermissionPreviewToken,
+} from './role-permission-preview-token';
 
 const previewSampleLimit = 3;
 
@@ -117,6 +121,24 @@ export async function previewRolePermissionImpact(input: {
       break;
     }
   }
+  // W2.30 (BA-rbac-02): the preview is recorded, not only signed. `jti` is the
+  // single-use claim the write consumes; the trim keeps the table bounded by the
+  // 15-minute TTL without a scheduler.
+  const issuedAt = new Date();
+  await input.prisma.rolePermissionPreviewClaim.deleteMany({
+    where: { expiresAt: { lt: issuedAt } },
+  });
+  const jti = randomUUID();
+  await input.prisma.rolePermissionPreviewClaim.create({
+    data: {
+      jti,
+      roleKey: role.key,
+      actorUserId: input.actorUserId,
+      expiresAt: new Date(
+        issuedAt.getTime() + rolePermissionPreviewTokenTtlSeconds * 1000,
+      ),
+    },
+  });
   return {
     // Paket 5.1 (M4 B2): dokaz koji `PUT` mora vratiti; potpis pokriva tačan
     // skup permisija, ulogu, pregledača i rok (15 minuta).
@@ -125,6 +147,7 @@ export async function previewRolePermissionImpact(input: {
     // izmjene više ne može tiho prepisati tu izmjenu.
     previewToken: signRolePermissionPreviewToken(
       {
+        jti,
         roleKey: role.key,
         permissionKeys: proposedPermissionKeys,
         baselinePermissionKeys: currentPermissionKeys,

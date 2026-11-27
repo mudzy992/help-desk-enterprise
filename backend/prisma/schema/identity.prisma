@@ -143,6 +143,20 @@ model Role {
   updatedAt       DateTime         @updatedAt
 }
 
+/// W2.30 (`BA-rbac-02`): one row per issued impact preview. The token carries
+/// `jti`; `replaceRolePermissions` claims the row inside its transaction, so a
+/// second PUT with the same token is refused instead of re-applying the set.
+model RolePermissionPreviewClaim {
+  jti         String    @id
+  roleKey     String
+  actorUserId String?
+  issuedAt    DateTime  @default(now())
+  expiresAt   DateTime
+  consumedAt  DateTime?
+
+  @@index([expiresAt])
+}
+
 model Permission {
   id              String           @id @default(cuid())
   key             String           @unique
