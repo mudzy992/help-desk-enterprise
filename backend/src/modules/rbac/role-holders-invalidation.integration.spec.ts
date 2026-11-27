@@ -10,9 +10,10 @@ import {
 import { PrincipalContextInvalidator } from '../../common/principal-context/principal-context-invalidator.service';
 import { PrincipalContextLoader } from '../../common/principal-context/principal-context.loader';
 import type { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
+import { createAuthorizationContext } from '../authorization/create-authorization-context';
+import type { AuthorizationContext } from '../authorization/authorization.types';
 import { permissionKeys } from '../authorization/authorization.constants';
-import { createTestAuthorizationHarness } from '../authorization/create-test-authorization-harness';
-import type { ShadowAuthorizationService } from '../authorization/shadow-authorization.service';
+import { ShadowAuthorizationService } from '../authorization/shadow-authorization.service';
 import type { JwtSigningSecretLoader } from '../authentication/jwt-signing-secret.loader';
 import { auditLogEntityTypes } from '../audit-log/audit-log.constants';
 import { RoleHoldersInvalidationDispatcher } from './role-holders-invalidation.dispatcher';
@@ -99,6 +100,58 @@ describeIfDatabase('role holder invalidation (integration)', () => {
     return (context?.assignments ?? []).flatMap(
       (assignment) => assignment.permissionKeys,
     );
+  }
+
+  /**
+   * A context loader in the shape of `PrincipalContextLoader`, read from the
+   * rows. The preview asks it for each affected assignment, so it must answer
+   * with the real role permission set — a stub that returns `undefined` would
+   * make the evaluator deny before the scenario even starts.
+   */
+  async function loadBySubjectId(subjectId: string): Promise<AuthorizationContext | null> {
+    const user = await database().user.findUnique({
+      where: { id: subjectId },
+      select: {
+        id: true,
+        isActive: true,
+        isLocalOnly: true,
+        entraObjectId: true,
+        directoryObjectGuid: true,
+        userRoles: {
+          select: {
+            organizationalUnitId: true,
+            serviceId: true,
+            organizationalUnit: { select: { ouPath: true } },
+            service: { select: { id: true } },
+            role: {
+              select: {
+                key: true,
+                rolePermissions: {
+                  select: { permission: { select: { key: true } } },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+    if (user === null) return null;
+    return createAuthorizationContext({
+      id: user.id,
+      isActive: user.isActive,
+      isLocalOnly: user.isLocalOnly,
+      entraObjectId: user.entraObjectId,
+      directoryObjectGuid: user.directoryObjectGuid,
+      assignments: user.userRoles.map((row) => ({
+        roleKey: row.role.key,
+        permissionKeys: row.role.rolePermissions.map(
+          (entry) => entry.permission.key,
+        ),
+        organizationalUnitId: row.organizationalUnitId,
+        organizationalUnitPath: row.organizationalUnit?.ouPath ?? null,
+        serviceId: row.service?.id ?? null,
+      })),
+    });
   }
 
   async function outboxRows() {
@@ -192,11 +245,14 @@ describeIfDatabase('role holder invalidation (integration)', () => {
     const failingNotice = jest
       .fn()
       .mockRejectedValue(new Error('redis_unavailable'));
-    const harness = createTestAuthorizationHarness();
+    const loader = { loadBySubjectId } as unknown as AuthorizationContextLoader;
     const service = new RolesService(
       prisma as unknown as PrismaService,
-      { loadBySubjectId: harness.loadBySubjectId } as unknown as AuthorizationContextLoader,
-      harness.shadowAuthorizationService as unknown as ShadowAuthorizationService,
+      loader,
+      new ShadowAuthorizationService(
+        loader,
+        prisma as unknown as PrismaService,
+      ),
       { publishCommittedRoleHolders: failingNotice } as never,
       { load: async () => previewSigningSecret } as unknown as JwtSigningSecretLoader,
       cacheInvalidation,
