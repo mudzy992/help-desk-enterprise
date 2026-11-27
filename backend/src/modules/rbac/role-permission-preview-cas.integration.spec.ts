@@ -60,7 +60,9 @@ describeIfDatabase('role permission preview baseline (integration)', () => {
         entityId: roleKey,
       },
       select: { metadata: true },
-      orderBy: { createdAt: 'asc' },
+      // Two writes can land in the same millisecond; `id` (cuid) keeps the order
+      // deterministic so "the last row" really is the newest one.
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
     });
   }
 
@@ -125,6 +127,7 @@ describeIfDatabase('role permission preview baseline (integration)', () => {
   }
 
   it('refuses the older preview after a newer commit lands, and audits only the winner', async () => {
+    const auditBefore = (await auditRows()).length;
     // A previews while the role holds [ticket.merge] and proposes [settings.write].
     const previewA = await service.preview(roleKey, [permissionKeys.settingsWrite], 'it-super-a');
     expect(previewA.currentPermissionKeys).toEqual([permissionKeys.ticketMerge]);
@@ -163,8 +166,8 @@ describeIfDatabase('role permission preview baseline (integration)', () => {
       permissionKeys.ticketMerge,
     ]);
     const rows = await auditRows();
-    expect(rows).toHaveLength(1);
-    expect(rows[0]?.metadata).toMatchObject({
+    expect(rows).toHaveLength(auditBefore + 1);
+    expect(rows[rows.length - 1]?.metadata).toMatchObject({
       roleKey,
       previousPermissionKeys: [permissionKeys.ticketMerge],
       nextPermissionKeys: [permissionKeys.settingsWrite, permissionKeys.ticketMerge],
@@ -223,6 +226,7 @@ describeIfDatabase('role permission preview baseline (integration)', () => {
   it('allows exactly one of two concurrent commits that share a baseline', async () => {
     const baseline = await currentKeys();
     expect(baseline.length).toBeGreaterThan(0);
+    const auditBefore = (await auditRows()).length;
 
     // Two previews of the same baseline, two different intentions that both
     // differ from it: A drops ticket.merge, B drops settings.write. A no-op set
@@ -264,8 +268,8 @@ describeIfDatabase('role permission preview baseline (integration)', () => {
     // The winner's set is the role's set, and the log gained exactly one row.
     expect(await currentKeys()).toEqual(winnerSets[0] ?? []);
     const rows = await auditRows();
-    expect(rows).toHaveLength(2);
-    expect(rows[1]?.metadata).toMatchObject({
+    expect(rows).toHaveLength(auditBefore + 1);
+    expect(rows[rows.length - 1]?.metadata).toMatchObject({
       roleKey,
       previousPermissionKeys: baseline,
     });
