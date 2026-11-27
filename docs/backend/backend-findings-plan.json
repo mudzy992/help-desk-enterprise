@@ -3412,7 +3412,7 @@
     {
       "id": "BA-rbac-01",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno (W2.29, [363](../implementation/363-w229-ba-rbac-01-preview-baseline-cas.md))",
       "source": "03-rbac.md",
       "owner": "WS-A",
       "wave": 2

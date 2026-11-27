@@ -145,6 +145,9 @@ export const integrationSpecs = Object.freeze([
   // W2.24 (BA-security-03): an audit outage keeps the event, recovery writes
   // exactly one correlated entry, and the intent lives in the caller transaction.
   "src/common/privileged-audit/privileged-audit.integration.spec.ts",
+  // W2.29 (BA-rbac-01): a preview older than another administrator's commit is
+  // refused by the baseline compare-and-swap — no row, no audit entry.
+  "src/modules/rbac/role-permission-preview-cas.integration.spec.ts",
 ]);
 
 export function buildDatabaseName(index, spec) {

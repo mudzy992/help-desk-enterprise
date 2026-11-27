@@ -10,12 +10,21 @@ import { RbacError } from './rbac.error';
 
   Potpis koristi postojeći `private.auth.jwtSigningSecret` (bez novog secreta i
   bez nove zavisnosti); token ne nosi ništa osim onoga što je već u pregledu.
+
+  BA-rbac-01 (W2.29): token nosi i **baseline** — skup permisija koji je uloga
+  imala u trenutku pregleda. Bez njega je „pregledao sam X" značilo samo „X je
+  i dalje moj predlog", pa je drugi administrator mogao u međuvremenu spremiti Y
+  i prvi je onda tiho prepisao. `replaceRolePermissions` poredi baseline sa
+  stvarnim stanjem **unutar** transakcije koja drži advisory lock i vraća
+  `PREVIEW_STALE` bez ijednog upisa i bez audit reda.
 */
 export const rolePermissionPreviewTokenTtlSeconds = 15 * 60;
 
 export type RolePermissionPreviewTokenPayload = {
   readonly roleKey: string;
   readonly permissionKeys: readonly string[];
+  /** BA-rbac-01: stanje uloge u trenutku pregleda (compare-and-swap osnova). */
+  readonly baselinePermissionKeys: readonly string[];
   readonly actorUserId: string | null;
   /** Unix sekunde — koristi se kao `previewedAt` u auditu. */
   readonly issuedAt: number;
@@ -26,6 +35,7 @@ export function signRolePermissionPreviewToken(
   input: {
     readonly roleKey: string;
     readonly permissionKeys: readonly string[];
+    readonly baselinePermissionKeys: readonly string[];
     readonly actorUserId: string | null;
     readonly issuedAt?: number;
   },
@@ -36,6 +46,7 @@ export function signRolePermissionPreviewToken(
     roleKey: input.roleKey,
     // Sortirano: potpis ne zavisi od redoslijeda u kojem je klijent poslao skup.
     permissionKeys: normalizePermissionKeys(input.permissionKeys),
+    baselinePermissionKeys: normalizePermissionKeys(input.baselinePermissionKeys),
     actorUserId: input.actorUserId,
     issuedAt,
     expiresAt: issuedAt + rolePermissionPreviewTokenTtlSeconds,
@@ -89,6 +100,22 @@ export function verifyRolePermissionPreviewToken(
   return payload;
 }
 
+/**
+ * BA-rbac-01: true when the role still holds exactly the set the preview saw.
+ * Order and duplicates never matter — both sides are the catalog keys of a role.
+ */
+export function permissionKeySetsMatch(
+  baseline: readonly string[],
+  current: readonly string[],
+): boolean {
+  const left = normalizePermissionKeys(baseline);
+  const right = normalizePermissionKeys(current);
+  return (
+    left.length === right.length &&
+    left.every((key, index) => key === right[index])
+  );
+}
+
 function normalizePermissionKeys(permissionKeys: readonly string[]): string[] {
   return [...new Set(permissionKeys)].sort();
 }
@@ -105,12 +132,15 @@ function decode(body: string): RolePermissionPreviewTokenPayload | null {
     if (typeof parsed !== 'object' || parsed === null) return null;
     const candidate = parsed as Record<string, unknown>;
     const permissionKeys = candidate['permissionKeys'];
+    const baselinePermissionKeys = candidate['baselinePermissionKeys'];
     const issuedAt = candidate['issuedAt'];
     const expiresAt = candidate['expiresAt'];
     if (
       typeof candidate['roleKey'] !== 'string' ||
       !Array.isArray(permissionKeys) ||
       permissionKeys.some((key) => typeof key !== 'string') ||
+      !Array.isArray(baselinePermissionKeys) ||
+      baselinePermissionKeys.some((key) => typeof key !== 'string') ||
       typeof candidate['actorUserId'] !== 'string' && candidate['actorUserId'] !== null ||
       typeof issuedAt !== 'number' ||
       typeof expiresAt !== 'number'
@@ -120,6 +150,7 @@ function decode(body: string): RolePermissionPreviewTokenPayload | null {
     return {
       roleKey: candidate['roleKey'],
       permissionKeys: permissionKeys as string[],
+      baselinePermissionKeys: baselinePermissionKeys as string[],
       actorUserId: candidate['actorUserId'] as string | null,
       issuedAt,
       expiresAt,

@@ -27,15 +27,21 @@ describe('RolesService preview and replace', () => {
   };
 
   const createService = (invalidateRoleHolders = jest.fn().mockResolvedValue(1)) => {
+    // BA-rbac-01 (W2.29): the preview baseline and the write's compare-and-swap
+    // both read this, so a test can model "another administrator committed in
+    // between" by replacing the rows between the two calls.
+    const permissionRows: { permission: { key: string } }[] = [
+      { permission: { key: permissionKeys.ticketMerge } },
+    ];
     const prisma: Record<string, unknown> = {
       role: {
         findUnique: jest.fn().mockResolvedValue(role),
         findMany: jest.fn(),
       },
       rolePermission: {
-        findMany: jest.fn().mockResolvedValue([
-          { permission: { key: permissionKeys.ticketMerge } },
-        ]),
+        findMany: jest
+          .fn()
+          .mockImplementation(async () => permissionRows.map((row) => ({ ...row }))),
         deleteMany: jest.fn().mockResolvedValue({ count: 1 }),
         create: jest.fn(),
       },
@@ -91,12 +97,13 @@ describe('RolesService preview and replace', () => {
       { load: async () => previewSigningSecret } as never,
     );
     type PrismaMock = {
-      rolePermission: { deleteMany: jest.Mock };
+      rolePermission: { deleteMany: jest.Mock; create: jest.Mock };
       auditLog: { create: jest.Mock };
     };
     return {
       service,
       prisma: prisma as unknown as PrismaMock,
+      permissionRows,
       harness,
       invalidateRoleHolders,
     };
@@ -141,6 +148,9 @@ describe('RolesService preview and replace', () => {
     expect(auditCall?.[0].data.metadata).toMatchObject({
       reason: 'Agent dobija pristup postavkama zbog nove dužnosti',
       nextPermissionKeys: [permissionKeys.settingsWrite],
+      // BA-rbac-01 (W2.29): the recorded "previous" state is the one the write
+      // actually replaced — read inside the transaction, not before it.
+      previousPermissionKeys: [permissionKeys.ticketMerge],
     });
     expect(typeof auditCall?.[0].data.metadata.previewedAt).toBe('string');
   });
@@ -236,6 +246,57 @@ describe('RolesService preview and replace', () => {
         requestId: 'req-1',
       }),
     ).rejects.toMatchObject({ response: { code: 'PREVIEW_REQUIRED' } });
+  });
+
+  it('refuses a preview made stale by another administrator\'s commit (BA-rbac-01)', async () => {
+    // Two SuperAdmins: A previews while the role holds [ticket.merge]; B commits
+    // [ticket.merge, settings.write]; A's PUT arrives afterwards. Before W2.29 the
+    // token was still valid and A silently overwrote B.
+    const { service, prisma, permissionRows, invalidateRoleHolders } = createService();
+    const previewA = await service.preview(
+      authorizationRoleKeys.agent,
+      [permissionKeys.settingsWrite],
+      'super-1',
+    );
+    permissionRows.push({ permission: { key: permissionKeys.settingsWrite } });
+
+    await expect(
+      service.replace({
+        roleKey: authorizationRoleKeys.agent,
+        permissionKeys: [permissionKeys.settingsWrite],
+        previewToken: previewA.previewToken,
+        reason: 'Pregled prije tuđe izmjene',
+        actorUserId: 'super-1',
+        requestId: 'req-1',
+      }),
+    ).rejects.toMatchObject({ response: { code: 'PREVIEW_STALE' } });
+
+    // Nothing was written and nothing was audited, and the holders were left alone.
+    expect(prisma.rolePermission.deleteMany).not.toHaveBeenCalled();
+    expect(prisma.rolePermission.create).not.toHaveBeenCalled();
+    expect(prisma.auditLog.create).not.toHaveBeenCalled();
+    expect(invalidateRoleHolders).not.toHaveBeenCalled();
+  });
+
+  it('accepts the second administrator after they run a fresh preview', async () => {
+    const { service, permissionRows } = createService();
+    permissionRows.push({ permission: { key: permissionKeys.settingsWrite } });
+    // B previews the *current* state, so the baseline is the state it will replace.
+    const previewB = await service.preview(
+      authorizationRoleKeys.agent,
+      [permissionKeys.settingsWrite],
+      'super-2',
+    );
+    await expect(
+      service.replace({
+        roleKey: authorizationRoleKeys.agent,
+        permissionKeys: [permissionKeys.settingsWrite],
+        previewToken: previewB.previewToken,
+        reason: 'Ponovni pregled poslije tuđe izmjene',
+        actorUserId: 'super-2',
+        requestId: 'req-2',
+      }),
+    ).resolves.toEqual([permissionKeys.settingsWrite]);
   });
 
   it('invalidates every holder of the role whose permissions changed', async () => {

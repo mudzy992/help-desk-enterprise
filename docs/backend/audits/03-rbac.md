@@ -127,7 +127,7 @@ Blokada je isti reproducibility nalaz evidentiran u prethodna dva modula. Nije p
 
 | ID         | Severity | Naslov                                                                                | Status   | Veličina |
 | ---------- | -------- | ------------------------------------------------------------------------------------- | -------- | -------- |
-| BA-rbac-01 | P2       | Preview nije vezan za baseline/revision i može prepisati noviju izmjenu               | otvoreno | M        |
+| BA-rbac-01 | P2       | Preview nije vezan za baseline/revision i može prepisati noviju izmjenu               | zatvoreno (W2.29, [363](../implementation/363-w229-ba-rbac-01-preview-baseline-cas.md)) | M        |
 | BA-rbac-02 | P2       | Preview token je ponovo upotrebljiv tokom cijelog TTL-a                               | otvoreno | M        |
 | BA-rbac-03 | P2       | Scoped role impact preview može prikazati pogrešan rezultat                           | otvoreno | M        |
 | BA-rbac-04 | P2       | `SUPER_ADMIN` permission matrica je uređiva, ali runtime je ignoriše                  | zatvoreno | S        |
@@ -146,6 +146,12 @@ Blokada je isti reproducibility nalaz evidentiran u prethodna dva modula. Nije p
 - **Korekcija:** preview mora nositi baseline hash/revision; replace radi optimistic compare-and-swap u transakciji i vraća `PREVIEW_STALE` ako se role revision promijenila.
 - **Acceptance:** dva paralelna previewa; nakon prvog commita drugi PUT obavezno pada bez promjene/audita.
 - **Owner:** RBAC owner.
+- **Zatvoreno u W2.29** ([363](../implementation/363-w229-ba-rbac-01-preview-baseline-cas.md)): token sada nosi
+  `baselinePermissionKeys` (potpisan, obavezan ulaz), `replaceRolePermissions` čita stanje **unutar** transakcije
+  poslije advisory locka i poredi ga s baselineom prije ijednog upisa (`PREVIEW_STALE`, 409). Audit
+  `previousPermissionKeys` je time stanje koje je upis stvarno zamijenio. Dokaz: unit scenarij A-preview→B-commit
+  →A-PUT (nula upisa, nula audit redova) + real-DB `role-permission-preview-cas.integration.spec.ts` sa
+  paralelnim `Promise.allSettled` parom (tačno jedan prolazi).
 
 ### BA-rbac-02 — Preview token nije jednokratan
 
@@ -265,7 +271,7 @@ Blokada je isti reproducibility nalaz evidentiran u prethodna dva modula. Nije p
 
 | Nalaz      | Safety-net                    | Acceptance dokaz                           |
 | ---------- | ----------------------------- | ------------------------------------------ |
-| BA-rbac-01 | paralelni A/B preview         | revision CAS odbija drugi PUT              |
+| BA-rbac-01 | paralelni A/B preview         | baseline CAS u transakciji odbija drugi PUT (`PREVIEW_STALE`, bez upisa/audita) |
 | BA-rbac-02 | isti token dva puta           | drugi PUT bez side effecta                 |
 | BA-rbac-03 | OU/service assignment fixture | scope-aware impact report                  |
 | BA-rbac-04 | SUPER_ADMIN replace test      | immutable greška ili stvarni runtime efekt |
