@@ -2,7 +2,6 @@ import { expect, test } from '@playwright/test';
 import { ApiClient } from '../helpers/api-client';
 import { assertDisposableTestAccount } from '../helpers/disposable-account';
 import { readE2EEnvironment } from '../helpers/environment';
-import { nextTotpCode } from '../helpers/mfa';
 import { restoreTestActorPassword } from '../helpers/provision-test-actors';
 
 const SESSION_COOKIE_NAME = 'helpdesk_session';
@@ -34,10 +33,10 @@ test.describe('37 authentication security (5.2.1 M2 #3–#6)', () => {
     const env = readE2EEnvironment();
     const admin = new ApiClient();
     await admin.login(env.superAdminEmail, env.superAdminPassword);
-    const generated = await admin.requestJson<{ recoveryCodes: string[] }>('/auth/mfa/recovery-codes', {
-      method: 'POST',
-      body: JSON.stringify({ code: await nextTotpCode(env.superAdminEmail) }),
-    });
+    const generated = await admin.requestJsonWithTotp<{ recoveryCodes: string[] }>(
+      '/auth/mfa/recovery-codes',
+      env.superAdminEmail,
+    );
     if (generated.recoveryCodes.length !== 10) {
       throw new Error('Expected ten newly generated MFA recovery codes.');
     }
@@ -322,11 +321,9 @@ async function signInWithRememberMe(
     body: JSON.stringify({ email, password, rememberMe }),
   });
   if (body.status === 'MFA_REQUIRED' && body.mfaToken !== undefined) {
-    const verified = await api.requestJson<SessionTtl>('/auth/mfa/verify', {
-      method: 'POST',
-      body: JSON.stringify({ mfaToken: body.mfaToken, code: await nextTotpCode(email) }),
+    return api.requestJsonWithTotp<SessionTtl>('/auth/mfa/verify', email, {
+      mfaToken: body.mfaToken,
     });
-    return verified;
   }
   if (body.status !== undefined) throw new Error(`[e2e] login requires ${body.status}`);
   if (body.expiresInSeconds === undefined) throw new Error('[e2e] login answer carried no session lifetime');
@@ -428,10 +425,10 @@ test.describe('37 authentication security extensions (5.4.0-c/d)', () => {
 
     let first: BulkPasswordResetResult | null = null;
     try {
-      first = await admin.requestJson<BulkPasswordResetResult>('/security/bulk-password-reset', {
-        method: 'POST',
-        body: JSON.stringify({ code: await nextTotpCode(env.superAdminEmail) }),
-      });
+      first = await admin.requestJsonWithTotp<BulkPasswordResetResult>(
+        '/security/bulk-password-reset',
+        env.superAdminEmail,
+      );
 
       // Counts only, and honest ones: every targeted account could be flagged
       // and every session revoked.
@@ -460,10 +457,10 @@ test.describe('37 authentication security extensions (5.4.0-c/d)', () => {
 
       // Repeated action: nothing left to flag, and it says so instead of
       // reporting the first result again.
-      const second = await admin.requestJson<BulkPasswordResetResult>('/security/bulk-password-reset', {
-        method: 'POST',
-        body: JSON.stringify({ code: await nextTotpCode(env.superAdminEmail) }),
-      });
+      const second = await admin.requestJsonWithTotp<BulkPasswordResetResult>(
+        '/security/bulk-password-reset',
+        env.superAdminEmail,
+      );
       expect(second.changedUsers).toBe(0);
       expect(second.failedUsers).toBe(0);
     } finally {

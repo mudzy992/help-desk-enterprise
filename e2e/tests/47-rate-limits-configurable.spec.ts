@@ -1,8 +1,8 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { ApiClient } from '../helpers/api-client';
+import { nextTotpCode } from '../helpers/mfa';
 import { assertDisposableTestAccount } from '../helpers/disposable-account';
 import { readE2EEnvironment } from '../helpers/environment';
-import { nextTotpCode } from '../helpers/mfa';
 import { signIn } from '../helpers/sign-in';
 
 /*
@@ -77,9 +77,9 @@ async function putConfig(
  * a spec that needs several confirmations would otherwise wait minutes.
  */
 async function freshRecoveryCodes(admin: ApiClient, email: string): Promise<readonly string[]> {
-  const { recoveryCodes } = await admin.requestJson<{ recoveryCodes: string[] }>(
+  const { recoveryCodes } = await admin.requestJsonWithTotp<{ recoveryCodes: string[] }>(
     '/auth/mfa/recovery-codes',
-    { method: 'POST', body: JSON.stringify({ code: await nextTotpCode(email) }) },
+    email,
   );
   if (recoveryCodes.length < 4) {
     throw new Error(`[e2e] expected at least four recovery codes, received ${recoveryCodes.length}`);

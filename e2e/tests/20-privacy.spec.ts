@@ -2,7 +2,6 @@ import { expect, test } from '@playwright/test';
 import { ApiClient } from '../helpers/api-client';
 import { createTicketViaApi, loadSeedCatalog } from '../helpers/create-ticket';
 import { readE2EEnvironment } from '../helpers/environment';
-import { nextTotpCode } from '../helpers/mfa';
 import { signIn } from '../helpers/sign-in';
 
 type DataSubjectRequest = {
@@ -120,10 +119,10 @@ test.describe('20 privacy (ZZLP BiH)', () => {
     expect(wrongCode.status).toBe(403);
     expect(((await wrongCode.json()) as { code: string }).code).toBe('IDENTITY_CONFIRMATION_FAILED');
 
-    const download = await api.request(`/privacy/exports/${queued.id}/download`, {
-      method: 'POST',
-      body: JSON.stringify({ code: await nextTotpCode(env.superAdminEmail) }),
-    });
+    const download = await api.requestWithTotp(
+      `/privacy/exports/${queued.id}/download`,
+      env.superAdminEmail,
+    );
     expect(download.status).toBe(200);
     expect(download.headers.get('content-type')).toContain('application/zip');
     const bytes = new Uint8Array(await download.arrayBuffer());

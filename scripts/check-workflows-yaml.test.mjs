@@ -245,6 +245,19 @@ test("backend job zaključava route manifest i izvršava API/worker wiring suite
   );
 });
 
+test("E2E poslovi dijele jednu concurrency grupu (zajednički stack)", () => {
+  const workflow = readFileSync(workflowPath, "utf8");
+  const e2e = readJob(workflow, "e2e");
+  const install = readJob(workflow, "e2e-install-wizard");
+  for (const [name, job] of [
+    ["e2e", e2e],
+    ["e2e-install-wizard", install],
+  ]) {
+    assert.ok(job.includes("group: e2e-shared-stack"), `${name}: dijeli stack sa ostalim runovima`);
+    assert.ok(job.includes("cancel-in-progress: false"), `${name}: nightly se ne otkazuje`);
+  }
+});
+
 test("backend job dokazuje offline build i authorization suiteove bez downloada", () => {
   const backend = readJob(readFileSync(workflowPath, "utf8"), "backend");
   assert.ok(backend.includes("npm run db:ensure-generated:test"));

@@ -1,6 +1,6 @@
 import { readApiSessionCookie, saveApiSessionCookie } from './api-session-store';
 import { readE2EEnvironment } from './environment';
-import { currentStep, nextTotpCode, saveMfaSecret, totpForStep } from './mfa';
+import { currentStep, saveMfaSecret, totpForStep, TOTP_REPLAY_CODE, withFreshTotpCode } from './mfa';
 
 /**
  * Connect-phase network errors: the request never reached the API, so repeating
@@ -160,10 +160,8 @@ export class ApiClient {
       });
       saveMfaSecret(email, secret, step);
     } else if (body.status === 'MFA_REQUIRED' && body.mfaToken) {
-      body = await this.requestJson<LoginBody>('/auth/mfa/verify', {
-        method: 'POST',
-        body: JSON.stringify({ mfaToken: body.mfaToken, code: await nextTotpCode(email) }),
-      });
+      const mfaToken = body.mfaToken;
+      body = await this.requestJsonWithTotp<LoginBody>('/auth/mfa/verify', email, { mfaToken });
     } else if (body.status !== undefined) {
       throw new Error(`Login requires ${body.status}`);
     }
@@ -174,6 +172,49 @@ export class ApiClient {
     throw new Error(
       'Login response did not set helpdesk_session; browser E2E requires the HttpOnly cookie contract',
     );
+  }
+
+  /**
+   * A POST whose body carries a fresh TOTP code (`{...payload, code}`), retried
+   * once with the next time step when the server answers `MFA_INVALID_CODE`
+   * because another E2E job spent the same step (helpers/mfa.ts).
+   */
+  async requestJsonWithTotp<T>(
+    path: string,
+    email: string,
+    payload: Record<string, unknown> = {},
+  ): Promise<T> {
+    return withFreshTotpCode(email, (code) =>
+      this.requestJson<T>(path, {
+        method: 'POST',
+        body: JSON.stringify({ ...payload, code }),
+      }),
+    );
+  }
+
+  /** Same retry contract as `requestJsonWithTotp`, for callers that assert on the raw response. */
+  async requestWithTotp(
+    path: string,
+    email: string,
+    payload: Record<string, unknown> = {},
+  ): Promise<Response> {
+    return withFreshTotpCode(email, async (code) => {
+      const response = await this.request(path, {
+        method: 'POST',
+        body: JSON.stringify({ ...payload, code }),
+      });
+      if (response.ok) return response;
+      const text = await response.clone().text();
+      if (text.includes(TOTP_REPLAY_CODE)) {
+        throw new ApiRequestError(
+          `${TOTP_REPLAY_CODE}: ${text} (from POST ${path})`,
+          response.status,
+          TOTP_REPLAY_CODE,
+          null,
+        );
+      }
+      return response;
+    });
   }
 
   async requestJson<T>(
