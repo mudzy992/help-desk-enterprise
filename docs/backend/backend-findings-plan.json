@@ -500,7 +500,7 @@
     {
       "id": "BA-authorization-03",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno (W2.27, [361](../implementation/361-w227-ba-authorization-03-read-only-route-census.md))",
       "source": "02-authorization.md",
       "owner": "WS-A",
       "wave": 2

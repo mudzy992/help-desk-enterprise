@@ -130,7 +130,7 @@ Prisma generator je u prethodnom modulu potvrđeno environment-blocked mrežnim 
 | ------------------- | -------- | -------------------------------------------------------------------------------------------- | -------- | -------- |
 | BA-authorization-01 | P2       | Best-effort invalidacija može zadržati oduzeta prava do cache TTL-a                          | zatvoreno | M        |
 | BA-authorization-02 | P2       | Ne postoji potpuni route-to-authorization manifest i CI guard                                | zatvoreno | L        |
-| BA-authorization-03 | P2       | Read-only zaštita zavisi od ručno održavane liste ruta i trusted izuzetaka                   | otvoreno | M        |
+| BA-authorization-03 | P2       | Read-only zaštita zavisi od ručno održavane liste ruta i trusted izuzetaka                   | zatvoreno (W2.27, [361](../implementation/361-w227-ba-authorization-03-read-only-route-census.md)) | M        |
 | BA-authorization-04 | P2       | Integracijski testni gate zavisi od mrežnog Prisma engine downloada                          | otvoreno | M        |
 | BA-authorization-05 | P3       | Current-session response gubi scope uz permission capabilityje                               | otvoreno | M        |
 | BA-authorization-06 | P3       | Dekoratori prihvataju proizvoljne stringove umjesto catalog union tipa                       | otvoreno | S        |
@@ -171,6 +171,16 @@ Prisma generator je u prethodnom modulu potvrđeno environment-blocked mrežnim 
 - **Korekcija:** povezati read-only klasifikaciju sa centralnim route registryjem i allowlistati read RPC izuzetke po handler identitetu, ne samo string putanji.
 - **Acceptance:** svaka admin mutation ruta pripada tačno jednom lockable modulu; nekatalogizovana mutacija ruši guard test.
 - **Owner:** authorization/configuration platform owner.
+- **Status (W2.27, 2026-11-27):** zatvoreno. Klasifikacija više ne dolazi iz ručne liste prefiksa ni iz
+  dekoratora: `adminReadOnlyRouteRegistry` popisuje svaku od **74** mutirajuće rute u lockable stablu po
+  handler identitetu (`Controller.method`, 70 `mutation` + 4 `read`), a interceptor je čita iz
+  `ExecutionContext`; nepoznat mutirajući handler unutar modula je fail-closed. `@AdminReadOperation` (44
+  upotrebe u 11 controllera, od kojih su 37 bile inertne) i lista putanja su obrisani — izuzetak je sada samo
+  `kind: 'read'` zapis u censusu, pinovan testom. Novi guard test poredi census sa centralnim
+  `backend-wiring-manifest.json` i pada na nekatalogizovanoj mutaciji, zastarjelom zapisu, promijenjenoj
+  metodi/putanji i preseljenju rute u drugi modul; `service_forms ⊂ service_catalog` nesting je eksplicitno
+  deklarisan. `POST /directory-sync/read` (koji upsertuje OU/users) prestaje biti „read". Detalji:
+  [361](../implementation/361-w227-ba-authorization-03-read-only-route-census.md).
 
 ### BA-authorization-04 — Prisma blokira puni modul test
 
@@ -273,7 +283,7 @@ Prisma generator je u prethodnom modulu potvrđeno environment-blocked mrežnim 
 | ------------------- | ------------------------------- | ---------------------------------- |
 | BA-authorization-01 | invalidator + cache TTL         | DB/Redis fault-injection matrica   |
 | BA-authorization-02 | controller census               | route policy registry CI guard     |
-| BA-authorization-03 | read-only constants/interceptor | admin mutation completeness test   |
+| BA-authorization-03 | `admin-read-only-route-registry.ts` (74 rute po handleru) + interceptor | `admin-read-only-route-census.spec.ts` (census ⇄ manifest, 3 negativna testa) |
 | BA-authorization-04 | 15 pass / 10 blocked            | 25/25 suiteova + build             |
 | BA-authorization-05 | current-session mapper          | scoped capability contract test    |
 | BA-authorization-06 | decorator signatures/evaluator  | unknown-token compile/runtime test |

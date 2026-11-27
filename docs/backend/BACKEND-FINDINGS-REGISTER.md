@@ -118,7 +118,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 01 | `authentication` | `BA-authentication-09` | P3 | 401 guarda ne briše mrtav `helpdesk_session` cookie | zatvoreno (W2.15a) | [01-authentication.md](audits/01-authentication.md) |
 | 02 | `authorization` | `BA-authorization-01` | P2 | Best-effort invalidacija može zadržati oduzeta prava do cache TTL-a | zatvoreno | [02-authorization.md](audits/02-authorization.md) |
 | 02 | `authorization` | `BA-authorization-02` | P2 | Ne postoji potpuni route-to-authorization manifest i CI guard | zatvoreno | [02-authorization.md](audits/02-authorization.md) |
-| 02 | `authorization` | `BA-authorization-03` | P2 | Read-only zaštita zavisi od ručno održavane liste ruta i trusted izuzetaka | otvoreno | [02-authorization.md](audits/02-authorization.md) |
+| 02 | `authorization` | `BA-authorization-03` | P2 | Read-only zaštita zavisi od ručno održavane liste ruta i trusted izuzetaka | zatvoreno (W2.27) | [02-authorization.md](audits/02-authorization.md) |
 | 02 | `authorization` | `BA-authorization-04` | P2 | Integracijski testni gate zavisi od mrežnog Prisma engine downloada | otvoreno | [02-authorization.md](audits/02-authorization.md) |
 | 02 | `authorization` | `BA-authorization-05` | P3 | Current-session response gubi scope uz permission capabilityje | otvoreno | [02-authorization.md](audits/02-authorization.md) |
 | 02 | `authorization` | `BA-authorization-06` | P3 | Dekoratori prihvataju proizvoljne stringove umjesto catalog union tipa | otvoreno | [02-authorization.md](audits/02-authorization.md) |
@@ -930,7 +930,7 @@ Targeted `RoleGuard` testovi su potvrdili da service-scoped i OU-scoped ADMIN ve
 Generisano iz 44 audit tabele: `npm run audit:traceability --prefix backend -- --write`. Ne uređivati ručno.
 
 - Ukupno: **698** (P1 175 · P2 371 · P3 152)
-- Zatvoreno: **355**
-- Otvoreno: **343** (P1 74 / P2 189 / P3 80)
+- Zatvoreno: **356**
+- Otvoreno: **342** (P1 74 / P2 188 / P3 80)
 - Val 7: **111 / 111** zatvoreno, otvoreno **0** (P1 0 / P2 0 / P3 0)
 <!-- findings-totals:end -->
