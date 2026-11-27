@@ -7,7 +7,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
-import { AdminReadOperation } from '../authorization/admin-read-operation.decorator';
 import {
   authorizationRoleKeys,
   permissionKeys,
@@ -33,14 +32,12 @@ export class InboundEmailAdminController {
   constructor(private readonly service: InboundEmailAdminService) {}
 
   @Get('status')
-  @AdminReadOperation()
   getStatus(): Promise<InboundEmailStatusResponse> {
     return this.service.getStatus();
   }
 
   @Post('test-connection')
   @HttpCode(HttpStatus.OK)
-  @AdminReadOperation()
   testConnection() {
     return this.service.testConnection();
   }

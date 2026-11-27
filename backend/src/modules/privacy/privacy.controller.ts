@@ -18,7 +18,6 @@ import {
 } from '@nestjs/common';
 import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
-import { AdminReadOperation } from '../authorization/admin-read-operation.decorator';
 import { authorizationRoleKeys, permissionKeys } from '../authorization/authorization.constants';
 import { RequireRoles } from '../authorization/require-roles.decorator';
 import { RequirePermissions } from '../authorization/require-permissions.decorator';
@@ -78,7 +77,6 @@ export class PrivacyController {
 
   @Get('requests')
   @RequirePermissions(permissionKeys.privacyView)
-  @AdminReadOperation()
   @Header('Cache-Control', 'no-store')
   listRequests(@Query() query: ListDataSubjectRequestsQueryDto) {
     return this.call(() => this.requestsService.list(query.scope ?? 'open'));
@@ -86,7 +84,6 @@ export class PrivacyController {
 
   @Get('requests/:id')
   @RequirePermissions(permissionKeys.privacyView)
-  @AdminReadOperation()
   @Header('Cache-Control', 'no-store')
   getRequest(@Param('id') id: string) {
     return this.call(() => this.requestsService.get(id));
@@ -134,7 +131,6 @@ export class PrivacyController {
 
   @Get('retention')
   @RequirePermissions(permissionKeys.privacyView)
-  @AdminReadOperation()
   @Header('Cache-Control', 'no-store')
   retentionOverview() {
     return this.call(() => this.retentionService.overview());
@@ -142,7 +138,6 @@ export class PrivacyController {
 
   @Get('retention/runs')
   @RequirePermissions(permissionKeys.privacyView)
-  @AdminReadOperation()
   @Header('Cache-Control', 'no-store')
   retentionRuns(@Query() query: RetentionRunsQueryDto) {
     return this.call(() => this.retentionService.listRuns(query.category));
@@ -150,7 +145,6 @@ export class PrivacyController {
 
   @Get('retention/runs/:id/refs.csv')
   @RequirePermissions(permissionKeys.privacyView)
-  @AdminReadOperation()
   @Header('Cache-Control', 'no-store')
   async retentionRunRefs(@Param('id') id: string): Promise<StreamableFile> {
     const csv = await this.call(() => this.retentionService.runRefsCsv(id));
@@ -179,7 +173,6 @@ export class PrivacyController {
 
   @Get('legal-holds')
   @RequirePermissions(permissionKeys.privacyView)
-  @AdminReadOperation()
   @Header('Cache-Control', 'no-store')
   legalHolds() {
     return this.call(() => this.legalHoldService.list());
@@ -214,7 +207,6 @@ export class PrivacyController {
   @Get('anonymization/candidates')
   @RequireRoles(authorizationRoleKeys.superAdmin)
   @RequirePermissions(permissionKeys.privacyAnonymize)
-  @AdminReadOperation()
   @Header('Cache-Control', 'no-store')
   anonymizationCandidates() {
     return this.call(() => this.anonymizationService.candidates());
@@ -224,7 +216,6 @@ export class PrivacyController {
   @Get('anonymization/users/:id/preview')
   @RequireRoles(authorizationRoleKeys.superAdmin)
   @RequirePermissions(permissionKeys.privacyAnonymize)
-  @AdminReadOperation()
   @Header('Cache-Control', 'no-store')
   anonymizationPreview(@Param() params: AnonymizationIdParamDto, @Req() request: AuthenticatedHttpRequest) {
     return this.call(() => this.anonymizationService.assess(params.id, privacyActorOf(request).principal.subjectId));
@@ -245,7 +236,6 @@ export class PrivacyController {
   @Get('anonymization/erasures')
   @RequireRoles(authorizationRoleKeys.superAdmin)
   @RequirePermissions(permissionKeys.privacyAnonymize)
-  @AdminReadOperation()
   @Header('Cache-Control', 'no-store')
   erasures() {
     return this.call(() => this.anonymizationService.listErasures());
@@ -254,7 +244,6 @@ export class PrivacyController {
   @Get('anonymization/erasures/:id')
   @RequireRoles(authorizationRoleKeys.superAdmin)
   @RequirePermissions(permissionKeys.privacyAnonymize)
-  @AdminReadOperation()
   @Header('Cache-Control', 'no-store')
   erasure(@Param() params: AnonymizationIdParamDto) {
     return this.call(() => this.anonymizationService.getErasure(params.id));
@@ -294,7 +283,6 @@ export class PrivacyController {
 
   @Get('exports')
   @RequirePermissions(permissionKeys.privacyManage)
-  @AdminReadOperation()
   @Header('Cache-Control', 'no-store')
   exports(@Req() request: AuthenticatedHttpRequest) {
     return this.call(() => this.exportService.list(privacyActorOf(request).principal.subjectId));
@@ -302,7 +290,6 @@ export class PrivacyController {
 
   @Get('exports/:id')
   @RequirePermissions(permissionKeys.privacyManage)
-  @AdminReadOperation()
   @Header('Cache-Control', 'no-store')
   exportDetail(@Param() params: AnonymizationIdParamDto, @Req() request: AuthenticatedHttpRequest) {
     return this.call(() => this.exportService.get(params.id, privacyActorOf(request).principal.subjectId));
@@ -331,7 +318,6 @@ export class PrivacyController {
 
   @Get('record')
   @RequirePermissions(permissionKeys.privacyView)
-  @AdminReadOperation()
   @Header('Cache-Control', 'no-store')
   record(@Query('locale') locale?: string) {
     return this.call(() => this.recordService.build(locale === 'en' ? 'en' : 'bs'));

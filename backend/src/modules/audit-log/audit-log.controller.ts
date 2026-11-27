@@ -13,7 +13,6 @@ import {
 } from '@nestjs/common';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
 import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
-import { AdminReadOperation } from '../authorization/admin-read-operation.decorator';
 import {
   authorizationRoleKeys,
   permissionKeys,
@@ -48,7 +47,6 @@ export class AuditLogController {
   @Get()
   @UseGuards(OuAccessGuard)
   @RequireOrganizationalUnitScope({ field: 'organizationalUnitId' })
-  @AdminReadOperation()
   @Header('Cache-Control', 'no-store')
   async list(
     @Query() query: ListAuditLogsQueryDto,
@@ -103,7 +101,6 @@ export class AuditLogController {
   }
 
   @Post('verify')
-  @AdminReadOperation()
   verify() {
     return this.execute(() => this.auditLogService.verify());
   }

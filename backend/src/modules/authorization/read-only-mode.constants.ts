@@ -18,6 +18,15 @@ export const defaultAdminReadOnlyLockableModulesCsv = [
   adminReadOnlyModuleKeys.sla,
 ].join(',');
 
+/**
+ * Module ownership of the URL tree — **not** the route catalog.
+ *
+ * Which routes exist inside those prefixes is answered by
+ * `adminReadOnlyRouteRegistry` (one entry per mutating handler, verified against
+ * the central route manifest). This table only says which module owns a prefix,
+ * so that the resolver can prove every catalogued route lands in exactly one
+ * module.
+ */
 export const adminReadOnlyRouteModules: readonly {
   readonly pathPrefix: string;
   readonly moduleKey: string;
@@ -64,10 +73,15 @@ export const adminReadOnlyRouteModules: readonly {
   },
 ];
 
-export const adminReadOnlyReadMutationPaths = [
-  '/directory-sync/read',
-  '/policy-packs/validate',
-] as const;
+/**
+ * Service forms live *inside* the service catalog URL tree
+ * (`/services/:serviceId/form/**`) but are their own lockable module. The nested
+ * shape is declared once, here and in `adminReadOnlySubModules`, so the census
+ * can distinguish "two modules claim this path" from "a sub-module inherits its
+ * parent's lock".
+ */
+export const adminReadOnlyServiceFormsPathPattern =
+  /^\/services\/[^/]+\/form(?:\/|$)/;
 
 export const adminReadOnlyMutatingMethods = [
   'POST',
@@ -75,9 +89,6 @@ export const adminReadOnlyMutatingMethods = [
   'PATCH',
   'DELETE',
 ] as const;
-
-export const ADMIN_READ_OPERATION_METADATA_KEY =
-  'adminReadOnly:readOperation';
 
 export const readOnlyModeErrorCodes = {
   forbidden: 'READ_ONLY_MODE',

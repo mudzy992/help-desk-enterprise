@@ -10,7 +10,6 @@ import {
 } from '@nestjs/common';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
 import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
-import { AdminReadOperation } from '../authorization/admin-read-operation.decorator';
 import {
   authorizationRoleKeys,
   permissionKeys,
@@ -64,7 +63,6 @@ export class PolicyPacksController {
    * without any target touches nothing and never reaches the database.
    */
   @Post('validate')
-  @AdminReadOperation()
   @UseGuards(RoleGuard)
   @RequireRoles(authorizationRoleKeys.superAdmin)
   @RequirePermissions(permissionKeys.settingsWrite)

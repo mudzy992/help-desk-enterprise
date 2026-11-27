@@ -11,7 +11,7 @@ import {
   permissionKeys,
 } from '../authorization/authorization.constants';
 import { AuthorizationModule } from '../authorization/authorization.module';
-import { ADMIN_READ_OPERATION_METADATA_KEY } from '../authorization/read-only-mode.constants';
+import { classifyAdminReadOnlyRequest } from '../authorization/classify-admin-read-only-request';
 import { RoleGuard } from '../authorization/role.guard';
 import { createInstallWizardHarness } from '../install/create-install-wizard-harness';
 import { SetupChecklistController } from './setup-checklist.controller';
@@ -24,7 +24,7 @@ import { SetupChecklistService } from './setup-checklist.service';
  * points at. The behaviour of those guards is specced next to them
  * (`session-authentication.guard.spec.ts`, `role.guard.spec.ts`); what this spec
  * holds is the wiring at the controller: a session (401 without one), the admin
- * role and `settings.write` (403 without them), the read-only annotation, and —
+ * role and `settings.write` (403 without them), the read-only classification, and —
  * the failure a hand-built controller never shows — the modules the guard chain
  * resolves from.
  */
@@ -60,21 +60,24 @@ describe('SetupChecklistController (post-install checklist)', () => {
     ).toBe('any');
   });
 
-  it('marks the read as an admin read operation and leaves the dismiss alone', () => {
-    // The read-only mode interceptor allows admin reads while the deployment is
-    // in read-only mode; writing the dismissal is a mutation and must not be
-    // annotated as one.
-    const read = Reflect.getMetadata(
-      ADMIN_READ_OPERATION_METADATA_KEY,
-      SetupChecklistController.prototype.getStatus,
-    );
-    const write = Reflect.getMetadata(
-      ADMIN_READ_OPERATION_METADATA_KEY,
-      SetupChecklistController.prototype.dismiss,
-    );
-
-    expect(read).toBe(true);
-    expect(write).toBeUndefined();
+  it('stays outside read-only mode instead of annotating an exemption', () => {
+    // The checklist is administrative content but not configuration: neither the
+    // read nor the dismissal is part of a lockable module, so read-only mode has
+    // nothing to classify — and the controller carries no exemption of its own.
+    expect(
+      classifyAdminReadOnlyRequest({
+        method: 'GET',
+        path: '/setup-checklist',
+        handlerIdentity: 'SetupChecklistController.getStatus',
+      }),
+    ).toBeNull();
+    expect(
+      classifyAdminReadOnlyRequest({
+        method: 'POST',
+        path: '/setup-checklist/dismiss',
+        handlerIdentity: 'SetupChecklistController.dismiss',
+      }),
+    ).toBeNull();
   });
 
   it('imports the modules its guard chain resolves from', () => {

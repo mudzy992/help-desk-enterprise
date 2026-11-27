@@ -32,13 +32,29 @@ class ApplyPolicyHandler {
 function createContext(
   request: Record<string, unknown>,
   handler: () => void = ApplyPolicyHandler.prototype.apply,
+  controller: unknown = ApplyPolicyHandler,
 ): ExecutionContext {
   return {
     getType: () => 'http',
     switchToHttp: () => ({ getRequest: () => request }),
     getHandler: () => handler,
-    getClass: () => ApplyPolicyHandler,
+    getClass: () => controller,
   } as unknown as ExecutionContext;
+}
+
+/**
+ * The registry is keyed by `Controller.method`; the interceptor reads that pair
+ * from the execution context, so a test double is enough to play a catalogued
+ * handler without booting the whole controller.
+ */
+function asHandlerIdentity(
+  controllerName: string,
+  handlerName: string,
+): { readonly controller: unknown; readonly handler: () => void } {
+  const handler = Object.defineProperty(() => undefined, 'name', {
+    value: handlerName,
+  }) as () => void;
+  return { controller: { name: controllerName }, handler };
 }
 
 describe('AdminReadOnlyInterceptor', () => {
@@ -46,7 +62,6 @@ describe('AdminReadOnlyInterceptor', () => {
   const loadBySubjectId = jest.fn();
   const authorizeWithDecision = jest.fn();
   const interceptor = new AdminReadOnlyInterceptor(
-    new Reflector(),
     { load } as unknown as ReadOnlyModeConfigurationLoader,
     { loadBySubjectId } as unknown as AuthorizationContextLoader,
   );
@@ -92,6 +107,51 @@ describe('AdminReadOnlyInterceptor', () => {
     );
     expect(authorizeWithDecision).toHaveBeenCalled();
     expect(load).not.toHaveBeenCalled();
+  });
+
+  it('allows a catalogued read RPC sent as POST', async () => {
+    const identity = asHandlerIdentity('PolicyPacksController', 'validate');
+    const request = {
+      method: 'POST',
+      path: '/policy-packs/validate',
+      [AUTHENTICATED_PRINCIPAL_REQUEST_KEY]: {
+        subjectId: 'user-1',
+        email: 'admin@example.com',
+        displayName: 'Admin',
+        isLocalOnly: false,
+      },
+    };
+
+    await expect(
+      interceptor.intercept(
+        createContext(request, identity.handler, identity.controller),
+        next,
+      ),
+    ).resolves.toBeDefined();
+    expect(load).not.toHaveBeenCalled();
+  });
+
+  it('blocks the mutating directory read that used to be exempted by path', async () => {
+    const identity = asHandlerIdentity('DirectorySyncController', 'read');
+    const request = {
+      method: 'POST',
+      path: '/directory-sync/read',
+      [AUTHENTICATED_PRINCIPAL_REQUEST_KEY]: {
+        subjectId: 'user-1',
+        email: 'admin@example.com',
+        displayName: 'Admin',
+        isLocalOnly: false,
+      },
+    };
+
+    await expect(
+      interceptor.intercept(
+        createContext(request, identity.handler, identity.controller),
+        next,
+      ),
+    ).rejects.toMatchObject({
+      response: { code: readOnlyModeErrorCodes.forbidden },
+    });
   });
 
   it('blocks apply after RoleGuard allows the same request', async () => {
