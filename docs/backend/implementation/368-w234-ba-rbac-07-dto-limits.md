@@ -87,7 +87,11 @@ Tests:       10 skipped, 186 passed, 196 total
 
 ### 3.3 CI
 
-PR #52 — vidi §6.
+PR #52, run [`46061230132`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/46061230132): prvi prolaz je
+imao crven `E2E critical flows`, ali ne zbog koda — watchdog je zabilježio **stack outage** (`GET
+https://api.desk.ba101.top/health` nije odgovorio), annotacija izričito kaže „STACK OUTAGE — infrastructure, not a
+code regression", a testovi u tom prozoru nose `[stack]` oznaku. Poslije `gh run rerun --failed` posao je zelen
+(9m46s), pa je `CI gate` zelen.
 
 ## 4. Šta paket mijenja u ponašanju
 
@@ -118,10 +122,13 @@ ograničen, a panel šalje izbor iz kataloga); promjena je u tome što neisprava
 
 | Posao | Ishod |
 | --- | --- |
-| `Backend build + test` | _popunjava se_ |
-| `Backend PostgreSQL + Redis integration` | _popunjava se_ |
-| `Frontend build + test` | _popunjava se_ |
-| `Backend container + supply chain` | _popunjava se_ |
-| `Docs guard` | _popunjava se_ |
-| `E2E critical flows` | _popunjava se_ |
-| `CI gate` | _popunjava se_ |
+| `Backend build + test` (uključuje traceability guard i novi DTO spec) | ✓ 5m30s |
+| `Backend PostgreSQL + Redis integration` | ✓ 14m45s |
+| `Frontend build + test` | ✓ 3m47s |
+| `Backend container + supply chain` | ✓ 3m17s |
+| `Docs guard` | ✓ 11s |
+| `E2E critical flows` | ✓ 9m46s (poslije rerun-a; prvi prolaz — stack outage) |
+| `CI gate` | ✓ |
+
+Push run je zelen sa integracijom i E2E **skipped** (CI ugovor); Perf smoke
+[`46061230215`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/46061230215) ✓.
