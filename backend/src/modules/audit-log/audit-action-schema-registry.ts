@@ -37,7 +37,12 @@ export const auditActionSchemaRegistry: Readonly<Record<string, AuditActionSchem
   [auditLogActions.rolePermissionReplace]: schema(['addedPermissionKeys', 'nextPermissionKeys', 'previewedAt', 'previousPermissionKeys', 'reason', 'roleKey', 'via']),
   [auditLogActions.userRoleAssign]: schema(['organizationalUnitId', 'roleKey', 'serviceId', 'userId'], 'restricted'),
   [auditLogActions.userRoleRemove]: schema(['organizationalUnitId', 'roleKey', 'serviceId', 'userId'], 'restricted'),
-  [auditLogActions.userCreated]: schema(['after', 'roleKey', 'via'], 'restricted'),
+  // W2.26 (`BA-users-02`): the account's creation entry records how the temporary
+  // password left the system (`ui` in the response, `email` by durable delivery).
+  [auditLogActions.userCreated]: schema(
+    ['after', 'roleKey', 'temporaryPasswordDelivery', 'via'],
+    'restricted',
+  ),
   [auditLogActions.userUpdated]: schema(['after', 'before', 'directoryIdentityLinked', 'directoryKind', 'displayName', 'email'], 'restricted'),
   [auditLogActions.userDeleted]: schema(['before'], 'restricted'),
   [auditLogActions.userPasswordReset]: schema(['mustChangePassword', 'reason'], 'restricted'),

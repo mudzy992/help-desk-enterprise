@@ -1,11 +1,4 @@
-import type { Prisma } from '../../generated/prisma/client';
 import type { PrismaService } from '../../common/prisma/prisma.service';
-import { appendAuditLog } from '../audit-log/append-audit-log';
-import {
-  auditLogActions,
-  auditLogEntityTypes,
-} from '../audit-log/audit-log.constants';
-import type { AuditLogWriteClient } from '../audit-log/audit-log.types';
 import { authorizationRoleKeys } from '../authorization/authorization.constants';
 import { assertCanAssignRole } from './assert-can-assign-role';
 import { mapUserRoleResponse } from './map-user-role-response';
@@ -15,7 +8,11 @@ import type {
   UserRoleResponse,
 } from './users.types';
 import { UsersError } from './users.error';
-import { lockActiveSuperAdminInvariant } from './super-admin-invariant';
+import {
+  createUserRoleWithinTransaction,
+  isEligibleSuperAdminIdentity,
+  userRoleInclude,
+} from './user-role-assignment.transaction';
 
 export async function assignUserRole(
   prisma: PrismaService,
@@ -66,103 +63,37 @@ export async function assignUserRole(
       throw new UsersError('SERVICE_NOT_FOUND');
     }
   }
-  const where = {
-    userId,
-    roleId: role.id,
-    organizationalUnitId,
-    serviceId,
-  };
   const existing = await prisma.userRole.findFirst({
-    where,
-    include: {
-      role: { select: { key: true, name: true } },
-      organizationalUnit: { select: { id: true, ouPath: true } },
-      service: { select: { id: true, name: true } },
+    where: {
+      userId,
+      roleId: role.id,
+      organizationalUnitId,
+      serviceId,
     },
+    include: userRoleInclude,
   });
   if (existing !== null) {
     return mapUserRoleResponse(existing);
   }
 
-  let createdNewRole = false;
-  const response = await prisma.$transaction(async (transaction) => {
-    if (isSuperAdminRole) {
-      // Shares the serializing lock with last-admin removal and directory linking.
-      await lockActiveSuperAdminInvariant(transaction as unknown as Prisma.TransactionClient);
-      const currentUser = await transaction.user.findUnique({
-        where: { id: userId },
-        select: {
-          id: true,
-          isActive: true,
-          isLocalOnly: true,
-          entraObjectId: true,
-          directoryObjectGuid: true,
-        },
-      });
-      if (currentUser === null) {
-        throw new UsersError('USER_NOT_FOUND');
-      }
-      if (!isEligibleSuperAdminIdentity(currentUser)) {
-        throw new UsersError('SUPER_ADMIN_LOCAL_IDENTITY_REQUIRED');
-      }
-      const existingInTransaction = await transaction.userRole.findFirst({
-        where,
-        include: {
-          role: { select: { key: true, name: true } },
-          organizationalUnit: { select: { id: true, ouPath: true } },
-          service: { select: { id: true, name: true } },
-        },
-      });
-      if (existingInTransaction !== null) {
-        return mapUserRoleResponse(existingInTransaction);
-      }
-    }
-    const created = await transaction.userRole.create({
-      data: {
-        userId,
-        roleId: role.id,
-        organizationalUnitId,
-        serviceId,
-      },
-      include: {
-        role: { select: { key: true, name: true } },
-        organizationalUnit: { select: { id: true, ouPath: true } },
-        service: { select: { id: true, name: true } },
-      },
-    });
-    await appendAuditLog(transaction as unknown as AuditLogWriteClient, {
-      action: auditLogActions.userRoleAssign,
-      entityType: auditLogEntityTypes.userRole,
-      entityId: created.id,
-      metadata: {
-        userId,
-        roleKey: role.key,
-        organizationalUnitId,
-        serviceId,
-      },
+  /*
+    W2.26 (`BA-users-02`): the grant itself is one composable transaction step, so
+    `createUser` can commit the user, the credential and this grant together. The
+    public path keeps its own transaction (and the post-commit invalidation) unchanged.
+  */
+  const { response, created } = await prisma.$transaction((transaction) =>
+    createUserRoleWithinTransaction(transaction, {
+      userId,
+      role,
+      organizationalUnitId,
+      serviceId,
       actorUserId: input.actorUserId,
       requestId: input.requestId,
-    });
-    createdNewRole = true;
-    return mapUserRoleResponse(created);
-  });
-  if (createdNewRole) {
+    }),
+  );
+  if (created) {
     // A new role changes what this user may do: drop the cached principal context.
     await invalidatePrincipal(userId);
   }
   return response;
-}
-
-function isEligibleSuperAdminIdentity(user: {
-  readonly isActive: boolean;
-  readonly isLocalOnly: boolean;
-  readonly entraObjectId: string | null;
-  readonly directoryObjectGuid: string | null;
-}): boolean {
-  return (
-    user.isActive &&
-    user.isLocalOnly &&
-    user.entraObjectId === null &&
-    user.directoryObjectGuid === null
-  );
 }

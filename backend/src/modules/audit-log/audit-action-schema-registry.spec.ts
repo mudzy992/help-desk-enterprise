@@ -92,4 +92,23 @@ describe('audit action schema registry', () => {
       }),
     ).not.toThrow();
   });
+
+  it('admits the creation entry the account commit writes (BA-users-02)', () => {
+    // W2.26: `createUser` records how the temporary password left the system, so the
+    // allowlist has to carry the field — otherwise every account creation would roll
+    // back on `AUDIT_METADATA_FIELD_NOT_ALLOWED`.
+    expect(() =>
+      prepareAuditEntry({
+        action: auditLogActions.userCreated,
+        entityType: auditLogEntityTypes.user,
+        entityId: 'user-1',
+        actorUserId: 'admin-1',
+        metadata: {
+          after: { displayName: 'Novi Korisnik', isLocalOnly: true },
+          roleKey: 'USER',
+          temporaryPasswordDelivery: 'email',
+        },
+      }),
+    ).not.toThrow();
+  });
 });

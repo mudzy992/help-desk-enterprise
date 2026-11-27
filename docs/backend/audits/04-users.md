@@ -175,7 +175,7 @@ Ovo nije zeleni gate. Blokada je isti checkout reproducibility problem evidentir
 | ID          | Severity | Naslov                                                                                    | Status   | Veličina |
 | ----------- | -------- | ----------------------------------------------------------------------------------------- | -------- | -------- |
 | BA-users-01 | P1       | ADMIN users control plane ignoriše OU/service scope                                       | zatvoreno (W2.10, [341](../implementation/341-w210-users-control-plane-scope.md)) | L        |
-| BA-users-02 | P1       | Kreiranje usera/passworda/role nije atomsko i autorizacija role dolazi prekasno           | otvoreno | L        |
+| BA-users-02 | P1       | Kreiranje usera/passworda/role nije atomsko i autorizacija role dolazi prekasno           | zatvoreno (W2.26, [360](../implementation/360-w226-ba-users-02-account-creation-atomicity.md)) | L        |
 | BA-users-03 | P1       | Deactivate i identity transitioni ne opozivaju sesije/MFA lifecycle                       | zatvoreno (W2.22) | L        |
 | BA-users-04 | P2       | Concurrent ordinary role assignment može kreirati duplikate                               | zatvoreno | M        |
 | BA-users-05 | P2       | Role scope model dopušta besmislene dual-scope i lažno scoped SuperAdmin zapise           | zatvoreno | M        |
@@ -204,6 +204,14 @@ Ovo nije zeleni gate. Blokada je isti checkout reproducibility problem evidentir
 - **Korekcija:** autorizovati i validirati cjelokupan intent prije side effecta; user+hash+role+audit commitovati u jednoj transakciji; dostavu raditi durable outboxom nakon commita, uz jasno pending/delivery stanje.
 - **Acceptance:** forbidden role i fault-injection u svakom koraku ne ostavljaju user/role/password parcijalno stanje niti šalju secret za neuspjelu operaciju.
 - **Owner:** users + notifications owner.
+- **Status (W2.26, 2026-11-26):** zatvoreno. Autorizacija i validacija **cijelog** intenta (`assertCanAssignRole`,
+  poznata rola, OU, slobodan e-mail, HIBP-provjerena lozinka) rade se **prije** prvog upisa; račun, hash, rola i
+  oba audita commituju se u **jednoj** transakciji (`createUserRoleWithinTransaction` dijeli pravila sa
+  `assignUserRole`), pa zabranjena rola i pad u bilo kojem koraku ne ostavljaju ni račun ni rolu ni vjerodajnicu.
+  Dostava je poslije commita i zavisi od kanala određenog **prije** commita: `ui` vraća tajnu u odgovoru, `email`
+  piše durable namjeru `users.temporary-password-delivery` **bez tajne** i worker izdaje lozinku uz retry (8
+  pokušaja), nikad ne pregazi administratorski reset i vraća hash na `null` ako e-mail nije otišao. Detalji:
+  [360](../implementation/360-w226-ba-users-02-account-creation-atomicity.md).
 
 ### BA-users-03 — Account/identity transitioni ne zatvaraju stare sesije
 
@@ -406,7 +414,7 @@ Najveći rizik je retroaktivno sužavanje ADMIN ponašanja: postojeće instalaci
 | ----------- | ----------------------------------------------------- | --------------------------------- | ---- |
 | BA-users-01 | users/security controlleri, target helper, list query | scoped ADMIN users API E2E        | 0–1  |
 | BA-users-10 | `users.service.ts`, `policy-packs.service.ts`, `report-summary.service.ts` | `app.module.optional-dependencies.spec.ts` | 0 |
-| BA-users-02 | `create-user.ts`, password issuer, role assign        | step fault + forbidden SA create  | 0–2  |
+| BA-users-02 | `create-user.ts` (jedna transakcija) + `user-role-assignment.transaction.ts` + `users.temporary-password-delivery` outbox + worker | 17 unit (commit red, pre-flight, fault, kanal, outbox, worker) + 5 real-DB (n commit, zabranjena rola, fault poslije namjere, retry dostave, ui kanal) | 0–2 |
 | BA-users-03 | update/link/unlink vs session registry                | stale session i reactivate replay | 0–3  |
 | BA-users-04 | `assign-user-role.ts`, `UserRole` schema              | concurrent duplicate grant        | 0–4  |
 | BA-users-05 | role DTO/evaluator/SA context                         | dual-scope i scoped-SA contract   | 0–4  |

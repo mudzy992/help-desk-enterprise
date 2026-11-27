@@ -1,10 +1,11 @@
 import { Inject, Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { TransactionalOutboxService } from '../../common/outbox/transactional-outbox.service';
 import { GroupsError } from '../groups/groups.error';
 import { addGroupMember } from '../groups/add-group-member';
 import { MAIL_TRANSPORT, type MailTransport } from '../notifications/email/mail-transport';
 import { SettingsService } from '../settings/settings.service';
-import { createUser } from '../users/create-user';
+import { createUser, type CreateUserDependencies } from '../users/create-user';
 import { UsersError } from '../users/users.error';
 import type {
   CreateUserInput,
@@ -33,11 +34,7 @@ import type {
 export type CreateInstallTeamMember = (
   prisma: PrismaService,
   input: CreateUserInput,
-  dependencies: {
-    readonly settingsService: SettingsService;
-    readonly mailTransport: MailTransport;
-    readonly hibpChecker?: HibpPasswordChecker;
-  },
+  dependencies: CreateUserDependencies,
 ) => Promise<{
   readonly user: {
     readonly id: string;
@@ -67,6 +64,11 @@ export class InstallTeamService {
     // simply skipped (fail-open, the same rule the users module follows).
     @Optional()
     private readonly hibpChecker?: HibpPasswordChecker,
+    // W2.26 (`BA-users-02`): the wizard creates real accounts, so its e-mail channel
+    // has to be as durable as `POST /users`. Optional: without it the credentials are
+    // shown once on screen (owner decision 2).
+    @Optional()
+    private readonly outbox?: TransactionalOutboxService,
   ) {}
 
   async getStatus(): Promise<InstallTeamStatus> {
@@ -141,6 +143,7 @@ export class InstallTeamService {
           settingsService: this.settingsService,
           mailTransport: this.mailTransport,
           hibpChecker: this.hibpChecker,
+          outbox: this.outbox,
         },
       );
     } catch (error) {

@@ -5,6 +5,32 @@ import { isAllowedNotificationEmailAddress } from '../notifications/email/is-all
 import type { MailTransport } from '../notifications/email/mail-transport';
 import { renderEmailMessage } from '../notifications/email/render-email-message';
 import { resolveEmailLocale } from '../notifications/email/compose-ticket-email';
+import { isReservedNoEmailAddress } from './is-reserved-no-email-address';
+
+/**
+ * W2.26 (`BA-users-02`): the delivery channel has to be known **before** the
+ * account transaction commits, because the decision changes what the transaction
+ * writes: `ui` hands the secret back in the response (so it is hashed and returned
+ * in-band), `email` cannot (the plaintext must never be persisted), so the commit
+ * only records a durable delivery intent and the credential is issued by the
+ * delivery worker.
+ *
+ * The predicate is exactly the one `sendTemporaryPasswordEmail` applies, minus the
+ * send: e-mail add-on on, SMTP configured, address allowed by policy and not a
+ * reserved no-mail domain.
+ */
+export async function resolveTemporaryPasswordChannel(input: {
+  readonly settingsService: SettingsService;
+  readonly email: string;
+}): Promise<'email' | 'ui'> {
+  if (isReservedNoEmailAddress(input.email)) return 'ui';
+  const addonEnabled = await readEmailAddonEnabled(input.settingsService);
+  if (!addonEnabled) return 'ui';
+  const configuration = await loadEmailChannelConfiguration(input.settingsService);
+  if (configuration.smtp === null) return 'ui';
+  if (!isAllowedNotificationEmailAddress(input.email, configuration)) return 'ui';
+  return 'email';
+}
 
 export async function sendTemporaryPasswordEmail(input: {
   readonly settingsService: SettingsService;

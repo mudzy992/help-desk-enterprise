@@ -5156,7 +5156,7 @@
     {
       "id": "BA-users-02",
       "severity": "P1",
-      "status": "otvoreno",
+      "status": "zatvoreno (W2.26, [360](../implementation/360-w226-ba-users-02-account-creation-atomicity.md))",
       "source": "04-users.md",
       "owner": "WS-A",
       "wave": 2
