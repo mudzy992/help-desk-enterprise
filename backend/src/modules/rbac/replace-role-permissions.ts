@@ -11,7 +11,10 @@ import { ensurePermissionRows } from './ensure-permission-rows';
 import { getRolePermissions } from './get-role-permissions';
 import { loadRoleByKey } from './load-role-by-key';
 import type { ReplaceRolePermissionsInput } from './rbac.types';
-import { verifyRolePermissionPreviewToken } from './role-permission-preview-token';
+import {
+  permissionKeySetsMatch,
+  verifyRolePermissionPreviewToken,
+} from './role-permission-preview-token';
 import { authorizationRoleKeys } from '../authorization/authorization.constants';
 import { lockActiveSuperAdminInvariant } from '../users/super-admin-invariant';
 
@@ -46,7 +49,6 @@ export async function replaceRolePermissions(
     throw new RbacError('PREVIEW_REQUIRED');
   }
   const role = await loadRoleByKey(prisma, input.roleKey);
-  const previousPermissionKeys = await getRolePermissions(prisma, role.key);
   const nextPermissionKeys = assertKnownPermissionKeys(input.permissionKeys);
   const nextPermissionKeysApplied = await prisma.$transaction(async (transaction) => {
     // The same transaction lock protects admin availability and the permission
@@ -56,6 +58,23 @@ export async function replaceRolePermissions(
       // Runtime SuperAdmin authority is intentionally the full catalog. Letting
       // this row be edited creates a deceptive matrix with no runtime effect.
       throw new RbacError('SYSTEM_ROLE_PERMISSIONS_IMMUTABLE');
+    }
+    // BA-rbac-01 (W2.29): optimistic compare-and-swap. The previewed baseline is
+    // read **inside** this transaction, after the advisory lock, so the value the
+    // audit calls `previousPermissionKeys` is the value the write replaced. A
+    // preview that is older than someone else's commit is refused here — before
+    // any row changes and before the audit row exists.
+    const previousPermissionKeys = await getRolePermissions(
+      transaction as PrismaService,
+      role.key,
+    );
+    if (
+      !permissionKeySetsMatch(
+        preview.baselinePermissionKeys,
+        previousPermissionKeys,
+      )
+    ) {
+      throw new RbacError('PREVIEW_STALE');
     }
     const idsByKey = await ensurePermissionRows(
       transaction as PrismaService,

@@ -120,10 +120,14 @@ export async function previewRolePermissionImpact(input: {
   return {
     // Paket 5.1 (M4 B2): dokaz koji `PUT` mora vratiti; potpis pokriva tačan
     // skup permisija, ulogu, pregledača i rok (15 minuta).
+    // BA-rbac-01 (W2.29): potpis pokriva i baseline — skup koji je uloga imala
+    // sada. `PUT` ga poredi sa stanjem u transakciji, pa pregled stariji od tuđe
+    // izmjene više ne može tiho prepisati tu izmjenu.
     previewToken: signRolePermissionPreviewToken(
       {
         roleKey: role.key,
         permissionKeys: proposedPermissionKeys,
+        baselinePermissionKeys: currentPermissionKeys,
         actorUserId: input.actorUserId,
       },
       input.signingSecret,

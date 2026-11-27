@@ -124,7 +124,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 02 | `authorization` | `BA-authorization-06` | P3 | Dekoratori prihvataju proizvoljne stringove umjesto catalog union tipa | otvoreno | [02-authorization.md](audits/02-authorization.md) |
 | 02 | `authorization` | `BA-authorization-07` | P3 | Dupli `RoleGuard` + `OuAccessGuard` izvršavaju istu odluku i dedupeuju audit prve evaluacije | otvoreno | [02-authorization.md](audits/02-authorization.md) |
 | 02 | `authorization` | `BA-authorization-08` | P3 | Read-only exact-path izuzeci nisu kanonski normalizovani | otvoreno | [02-authorization.md](audits/02-authorization.md) |
-| 03 | `rbac` | `BA-rbac-01` | P2 | Preview nije vezan za baseline/revision i može prepisati noviju izmjenu | otvoreno | [03-rbac.md](audits/03-rbac.md) |
+| 03 | `rbac` | `BA-rbac-01` | P2 | Preview nije vezan za baseline/revision i može prepisati noviju izmjenu | zatvoreno (W2.29) | [03-rbac.md](audits/03-rbac.md) |
 | 03 | `rbac` | `BA-rbac-02` | P2 | Preview token je ponovo upotrebljiv tokom cijelog TTL-a | otvoreno | [03-rbac.md](audits/03-rbac.md) |
 | 03 | `rbac` | `BA-rbac-03` | P2 | Scoped role impact preview može prikazati pogrešan rezultat | otvoreno | [03-rbac.md](audits/03-rbac.md) |
 | 03 | `rbac` | `BA-rbac-04` | P2 | `SUPER_ADMIN` permission matrica je uređiva, ali runtime je ignoriše | zatvoreno | [03-rbac.md](audits/03-rbac.md) |
@@ -930,7 +930,7 @@ Targeted `RoleGuard` testovi su potvrdili da service-scoped i OU-scoped ADMIN ve
 Generisano iz 44 audit tabele: `npm run audit:traceability --prefix backend -- --write`. Ne uređivati ručno.
 
 - Ukupno: **698** (P1 175 · P2 371 · P3 152)
-- Zatvoreno: **357**
-- Otvoreno: **341** (P1 74 / P2 187 / P3 80)
+- Zatvoreno: **358**
+- Otvoreno: **340** (P1 74 / P2 186 / P3 80)
 - Val 7: **111 / 111** zatvoreno, otvoreno **0** (P1 0 / P2 0 / P3 0)
 <!-- findings-totals:end -->
