@@ -38,8 +38,10 @@ function withJournal(run: (path: string) => Promise<void>): Promise<void> {
   const directory = mkdtempSync(join(tmpdir(), 'email-gate-test-'));
   const journal = join(directory, 'outbound-email.json');
   process.env.E2E_EMAIL_GATE_JOURNAL = journal;
+  process.env.E2E_EMAIL_GATE_NOTE = join(directory, 'note.json');
   return run(journal).finally(() => {
     delete process.env.E2E_EMAIL_GATE_JOURNAL;
+    delete process.env.E2E_EMAIL_GATE_NOTE;
     delete process.env.E2E_DISABLE_EMAIL_CHANNEL;
     rmSync(directory, { recursive: true, force: true });
   });
@@ -103,6 +105,39 @@ test('a channel that was already closed is recorded, not "changed"', async () =>
     await restoreOutboundEmailGate(fakeApi(stack));
     expect(stack.value).toBe(false);
     expect(existsSync(journal)).toBe(false);
+  });
+});
+
+test('the run artifact records what the gate decided', async () => {
+  await withJournal(async (journal) => {
+    const note = process.env.E2E_EMAIL_GATE_NOTE!;
+    process.env.E2E_DISABLE_EMAIL_CHANNEL = '1';
+    const stack: FakeStack = { value: true, writes: [], offline: false };
+    await applyOutboundEmailGate(fakeApi(stack));
+    expect(JSON.parse(readFileSync(note, 'utf8'))).toMatchObject({
+      requested: true,
+      channelBefore: true,
+      channelClosed: true,
+      restoredTo: null,
+    });
+    await restoreOutboundEmailGate(fakeApi(stack));
+    expect(JSON.parse(readFileSync(note, 'utf8'))).toMatchObject({
+      channelBefore: true,
+      restoredTo: true,
+    });
+    expect(existsSync(journal)).toBe(false);
+  });
+});
+
+test('a nightly run records that it left the channel alone', async () => {
+  await withJournal(async () => {
+    const note = process.env.E2E_EMAIL_GATE_NOTE!;
+    const stack: FakeStack = { value: true, writes: [], offline: false };
+    await applyOutboundEmailGate(fakeApi(stack));
+    expect(JSON.parse(readFileSync(note, 'utf8'))).toMatchObject({
+      requested: false,
+      channelClosed: false,
+    });
   });
 });
 

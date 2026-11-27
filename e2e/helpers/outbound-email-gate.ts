@@ -1,4 +1,5 @@
-import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
 import type { ApiClient } from './api-client';
 
 /*
@@ -29,6 +30,34 @@ const journalPath = (): string => {
 };
 
 const reason = 'E2E pull-request smoke run: close the notification e-mail channel';
+
+/**
+ * A small note under the Playwright output directory, which the job uploads with
+ * the report. The channel is a stack-side setting, so without this the only trace
+ * of the gate is a log line; the note makes the decision (and the restore) part of
+ * the run's artifacts.
+ */
+type GateNote = {
+  readonly requested: boolean;
+  readonly channelBefore: boolean | null;
+  readonly channelClosed: boolean;
+  readonly restoredTo: boolean | null;
+  readonly at: string;
+};
+
+const notePath = (): string =>
+  process.env.E2E_EMAIL_GATE_NOTE ?? path.join('test-results', 'outbound-email-gate.json');
+
+function writeNote(note: GateNote): void {
+  try {
+    const target = notePath();
+    mkdirSync(path.dirname(target), { recursive: true });
+    writeFileSync(target, `${JSON.stringify(note, null, 2)}\n`);
+  } catch (error) {
+    // The note must never decide whether a run passes.
+    console.warn(`[e2e] could not write the e-mail gate note: ${String(error)}`);
+  }
+}
 
 type Entry = { readonly key: string; readonly value: unknown };
 type Journal = { readonly key: string; readonly value: boolean };
@@ -68,6 +97,13 @@ export async function applyOutboundEmailGate(api: ApiClient): Promise<void> {
   if (existsSync(journalPath())) await restoreOutboundEmailGate(api);
   if (!emailGateRequested()) {
     console.log('[e2e] outbound e-mail channel left as the stack has it (nightly/dispatch run)');
+    writeNote({
+      requested: false,
+      channelBefore: null,
+      channelClosed: false,
+      restoredTo: null,
+      at: new Date().toISOString(),
+    });
     return;
   }
   const value = await readChannelEnabled(api);
@@ -77,12 +113,26 @@ export async function applyOutboundEmailGate(api: ApiClient): Promise<void> {
   });
   if (!value) {
     console.log('[e2e] outbound e-mail channel was already closed; nothing to change');
+    writeNote({
+      requested: true,
+      channelBefore: false,
+      channelClosed: false,
+      restoredTo: null,
+      at: new Date().toISOString(),
+    });
     return;
   }
   await writeChannelEnabled(api, false);
   if (await readChannelEnabled(api)) {
     throw new Error(`E2E could not close ${emailChannelKey}; the smoke run would send real e-mail`);
   }
+  writeNote({
+    requested: true,
+    channelBefore: true,
+    channelClosed: true,
+    restoredTo: null,
+    at: new Date().toISOString(),
+  });
   console.log('[e2e] outbound e-mail channel closed for this pull-request run (restored in teardown)');
 }
 
@@ -104,6 +154,13 @@ export async function restoreOutboundEmailGate(api: ApiClient): Promise<void> {
         throw new Error('E-mail channel read-back mismatch');
       }
       unlinkSync(path);
+      writeNote({
+        requested: emailGateRequested(),
+        channelBefore: record.value,
+        channelClosed: false,
+        restoredTo: record.value,
+        at: new Date().toISOString(),
+      });
       console.log(`[e2e] outbound e-mail channel restored (enabled: ${record.value})`);
       return;
     } catch (error) {

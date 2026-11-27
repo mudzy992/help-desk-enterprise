@@ -306,7 +306,7 @@ provajdera.
 | Obim posla za PR | diff `origin/base..HEAD` (cijeli PR) | `scripts/ci-change-scope.mjs`: posao se preskače **samo** kad je sve od zadnjeg **zelenog** PR runa dokumentacija; inače sve ide | 9 testova u `scripts/ci-change-scope.test.mjs` |
 | E2E skup na PR-u | fiksno `01,02,03,15,22,54` | `scripts/e2e-spec-selection.mjs`: putanja → spec, fallback na istih šest za sve nepoznato i kad unija pređe 4 fajla | 11 testova u `scripts/e2e-spec-selection.test.mjs` (uključujući provjeru da svaki broj postoji u `e2e/tests`) |
 | Preklapanje runova | workflow `concurrency` sa `cancel-in-progress` samo na PR | **nepromijenjeno** — `group: ci-${{ github.workflow }}-${{ github.ref }}`, `cancel-in-progress` na PR; master run se ne otkazuje jer je zapis | `.github/workflows/ci.yml` (postavljeno 2026-10-06) |
-| E-mail u PR smoke runu | `E2E_ALLOW_EMAIL_SEND` čuva samo eksplicitni send u specu 18; `01/02/03` šalju mimo njega | `E2E_DISABLE_EMAIL_CHANNEL=1` na PR-u: suite zatvori kanal kroz settings API i vrati ga u teardownu; noćni run ga ostavlja otvorenog | `e2e/helpers/outbound-email-gate.ts` + 7 unit testova |
+| E-mail u PR smoke runu | `E2E_ALLOW_EMAIL_SEND` čuva samo eksplicitni send u specu 18; `01/02/03` šalju mimo njega | `E2E_DISABLE_EMAIL_CHANNEL=1` na PR-u: suite zatvori kanal kroz settings API i vrati ga u teardownu; noćni run ga ostavlja otvorenog | `e2e/helpers/outbound-email-gate.ts` + 9 unit testova |
 
 **Zašto ovo ne slabi kapiju.**
 
@@ -318,6 +318,10 @@ provajdera.
   `app.module.ts`, `prisma/**`, `.github/**` i svaka unija veća od četiri fajla vraćaju **punih šest**.
 - E-mail kanal se ne mockuje: in-app notifikacije, šabloni, delivery redovi i health panel rade dalje i bilježe
   `email_channel_disabled`; noćni run i dalje pokriva stvarno slanje.
+
+**Kako se vidi u runu.** Odluka gejta se upisuje u `e2e/test-results/outbound-email-gate.json`, a taj direktorij
+ide u `playwright-report` artifact: `{requested, channelBefore, channelClosed, restoredTo}` — dakle iz artefakta je
+vidljivo je li kanal zaista zatvoren i vraćen, bez čitanja loga.
 
 **Šta ovo ne tvrdi.** Mapiranje ne dokazuje da je odabrani spec dovoljan za svaku izmjenu — dokazuje da nepoznata
 izmjena ne može ostati bez browsera. Zato je fallback širi od mapiranog skupa, a ne obrnuto.
