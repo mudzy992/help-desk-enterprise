@@ -31,6 +31,10 @@ jest.mock('./send-temporary-password-email', () => ({
   sendTemporaryPasswordEmail: jest.fn().mockResolvedValue(true),
 }));
 
+// The sender itself is a mocked seam here (its own suite covers rendering and the
+// recipient policy); the worker, the transactions and the outbox are real.
+import { sendTemporaryPasswordEmail } from './send-temporary-password-email';
+
 const url = process.env.PRIVACY_IT_DATABASE_URL;
 const describeIfDatabase = url ? describe : describe.skip;
 
@@ -99,8 +103,8 @@ describeIfDatabase('user provisioning (integration)', () => {
 
   beforeEach(() => {
     jest.mocked(resolveTemporaryPasswordChannel).mockResolvedValue('email');
-    jest.mocked(mailTransport.send).mockReset();
-    jest.mocked(mailTransport.send).mockResolvedValue(undefined);
+    jest.mocked(sendTemporaryPasswordEmail).mockReset();
+    jest.mocked(sendTemporaryPasswordEmail).mockResolvedValue(true);
   });
 
   it('commits the account, the slot for the credential, the role, the audit and the delivery intent together', async () => {
@@ -133,12 +137,16 @@ describeIfDatabase('user provisioning (integration)', () => {
     });
     expect(user.email).toBe(input.email);
 
-    await expect(
-      database().userRole.count({ where: { userId: response.user.id } }),
-    ).resolves.toBe(1);
+    const roles = await database().userRole.findMany({
+      where: { userId: response.user.id },
+      select: { id: true },
+    });
+    expect(roles).toHaveLength(1);
 
+    // The grant is audited against the `UserRole` row it created, the account against
+    // the user: both rows belong to this one commit.
     const actions = await database().auditLog.findMany({
-      where: { entityId: response.user.id },
+      where: { entityId: { in: [response.user.id, ...roles.map((role) => role.id)] } },
       select: { action: true },
       orderBy: { createdAt: 'asc' },
     });
@@ -163,7 +171,7 @@ describeIfDatabase('user provisioning (integration)', () => {
     expect(JSON.stringify(intent.payload)).not.toMatch(/password/iu);
 
     // …and nothing was mailed by the request path.
-    expect(mailTransport.send).not.toHaveBeenCalled();
+    expect(sendTemporaryPasswordEmail).not.toHaveBeenCalled();
   });
 
   it('refuses a SUPER_ADMIN grant for a non-super-admin and leaves no trace at all', async () => {
@@ -182,7 +190,7 @@ describeIfDatabase('user provisioning (integration)', () => {
       }),
     ).resolves.toBe(0);
     await expect(database().auditLog.count()).resolves.toBe(auditsBefore);
-    expect(mailTransport.send).not.toHaveBeenCalled();
+    expect(sendTemporaryPasswordEmail).not.toHaveBeenCalled();
   });
 
   it('rolls the whole account back when the transaction dies after the intent is written', async () => {
@@ -226,7 +234,7 @@ describeIfDatabase('user provisioning (integration)', () => {
       }),
     ).resolves.toBe(0);
     await expect(database().auditLog.count()).resolves.toBe(auditsBefore);
-    expect(mailTransport.send).not.toHaveBeenCalled();
+    expect(sendTemporaryPasswordEmail).not.toHaveBeenCalled();
   });
 
   it('delivers the credential out of the intent, once, and only then marks it done', async () => {
@@ -243,7 +251,7 @@ describeIfDatabase('user provisioning (integration)', () => {
     );
 
     // A failed mail must not leave a password behind that nobody received.
-    jest.mocked(mailTransport.send).mockRejectedValueOnce(new Error('smtp down'));
+    jest.mocked(sendTemporaryPasswordEmail).mockResolvedValueOnce(false);
     await expect(dispatcher.drain(1)).resolves.toBe(0);
     const afterFailure = await database().user.findUniqueOrThrow({
       where: { id: response.user.id },
@@ -272,7 +280,7 @@ describeIfDatabase('user provisioning (integration)', () => {
     });
     expect(delivered.localPasswordHash).not.toBeNull();
     expect(delivered.mustChangePassword).toBe(true);
-    expect(mailTransport.send).toHaveBeenCalledTimes(2);
+    expect(sendTemporaryPasswordEmail).toHaveBeenCalledTimes(2);
 
     await expect(
       database().outboxMessage.findUniqueOrThrow({
@@ -304,6 +312,6 @@ describeIfDatabase('user provisioning (integration)', () => {
         },
       }),
     ).resolves.toBe(0);
-    expect(mailTransport.send).not.toHaveBeenCalled();
+    expect(sendTemporaryPasswordEmail).not.toHaveBeenCalled();
   });
 });
