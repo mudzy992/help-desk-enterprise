@@ -52,6 +52,19 @@ export type PrincipalBatchInvalidationHook = (
   userIds: readonly string[],
 ) => Promise<unknown>;
 
+/**
+ * W2.32 (`BA-rbac-05`): one holder of a role and the `authzVersion` the role
+ * write already committed for them **inside** its own transaction.
+ *
+ * The pair is what the post-commit step needs: the database value is the truth
+ * (the loader refuses a cached payload whose version is older), and the same
+ * number becomes the cache pointer so the next request is a guaranteed miss.
+ */
+export type RoleHolderFence = {
+  readonly userId: string;
+  readonly authzVersion: number;
+};
+
 export type PrincipalContext = {
   readonly subjectId: string;
   readonly email: string;

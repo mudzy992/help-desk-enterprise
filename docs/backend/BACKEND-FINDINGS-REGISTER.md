@@ -128,7 +128,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 03 | `rbac` | `BA-rbac-02` | P2 | Preview token je ponovo upotrebljiv tokom cijelog TTL-a | zatvoreno (W2.30) | [03-rbac.md](audits/03-rbac.md) |
 | 03 | `rbac` | `BA-rbac-03` | P2 | Scoped role impact preview može prikazati pogrešan rezultat | zatvoreno (W2.31) | [03-rbac.md](audits/03-rbac.md) |
 | 03 | `rbac` | `BA-rbac-04` | P2 | `SUPER_ADMIN` permission matrica je uređiva, ali runtime je ignoriše | zatvoreno | [03-rbac.md](audits/03-rbac.md) |
-| 03 | `rbac` | `BA-rbac-05` | P2 | Post-commit invalidacija nosilaca nije durable niti fail-closed | otvoreno | [03-rbac.md](audits/03-rbac.md) |
+| 03 | `rbac` | `BA-rbac-05` | P2 | Post-commit invalidacija nosilaca nije durable niti fail-closed | zatvoreno (W2.32) | [03-rbac.md](audits/03-rbac.md) |
 | 03 | `rbac` | `BA-rbac-06` | P3 | Preview broj pogođenih broji assignment redove, ne jedinstvene korisnike | otvoreno | [03-rbac.md](audits/03-rbac.md) |
 | 03 | `rbac` | `BA-rbac-07` | P3 | DTO nema eksplicitne limite za broj/dužinu permissiona i preview token | otvoreno | [03-rbac.md](audits/03-rbac.md) |
 | 03 | `rbac` | `BA-rbac-08` | P3 | Aditivni seeder može vratiti namjerno uklonjena prava bez apply-time baseline potvrde | otvoreno | [03-rbac.md](audits/03-rbac.md) |
@@ -930,7 +930,7 @@ Targeted `RoleGuard` testovi su potvrdili da service-scoped i OU-scoped ADMIN ve
 Generisano iz 44 audit tabele: `npm run audit:traceability --prefix backend -- --write`. Ne uređivati ručno.
 
 - Ukupno: **698** (P1 175 · P2 371 · P3 152)
-- Zatvoreno: **360**
-- Otvoreno: **338** (P1 74 / P2 184 / P3 80)
+- Zatvoreno: **361**
+- Otvoreno: **337** (P1 74 / P2 183 / P3 80)
 - Val 7: **111 / 111** zatvoreno, otvoreno **0** (P1 0 / P2 0 / P3 0)
 <!-- findings-totals:end -->
