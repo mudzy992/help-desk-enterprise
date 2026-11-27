@@ -142,7 +142,21 @@ Scenario (jedan test, pet koraka):
 
 ### 3.4 CI
 
-PR #50 — vidi §6.
+Tri prolaza su bila potrebna, i svaki je našao stvarnu grešku u isporuci (ne flake):
+
+1. `46036396183` — `Backend build + test` i `Docs guard` crveni na traceability guardu: `audit:traceability --write`
+   je regenerisao i `BACKEND-IMPLEMENTATION-MASTER-PLAN.md`, a taj fajl nije ušao u commit; `npm run
+   audit:traceability` i `node scripts/check-backend-findings.mjs` su lokalno reproducirali isti PROBLEM.
+   Integracija je pala na `TypeError: Cannot read properties of undefined (reading 'subjectId')` — preview je
+   tražio kontekst nosioca od harnessa koji nema default implementaciju, pa je prvi put u ovom paketu bilo stvarnih
+   nosilaca koje preview skenira.
+2. `46039006212` — traceability zelen; integracija i dalje crvena (isti `subjectId`) jer je popravka master plana
+   otišla bez popravke loader-a; `Backend container + supply chain` pao na infrastrukturi („The Syft installer failed
+   to install v1.54.0"), ne na kodu.
+3. `46041324568` — zelen: spec sada koristi **DB-derived** loader (oblik `PrincipalContextLoader`-a, bez Redis
+   keša), pa preview evaluira stvarni kontekst nosioca.
+
+Full detalj u §6.
 
 ## 4. Šta paket mijenja u ponašanju
 
@@ -184,10 +198,13 @@ garanciji ispod API-ja.
 
 | Posao | Ishod |
 | --- | --- |
-| `Backend build + test` | _popunjava se_ |
-| `Backend PostgreSQL + Redis integration` (novi holder-invalidation spec) | _popunjava se_ |
-| `Frontend build + test` | _popunjava se_ |
-| `Backend container + supply chain` | _popunjava se_ |
-| `Docs guard` | _popunjava se_ |
-| `E2E critical flows` | _popunjava se_ |
-| `CI gate` | _popunjava se_ |
+| `Backend build + test` (uključuje traceability guard) | ✓ 4m23s |
+| `Backend PostgreSQL + Redis integration` (novi holder-invalidation spec) | ✓ 21m54s |
+| `Frontend build + test` | ✓ 3m37s |
+| `Backend container + supply chain` | ✓ 3m43s |
+| `Docs guard` | ✓ 13s |
+| `E2E critical flows` | ✓ 10m14s |
+| `CI gate` | ✓ |
+
+Push run je zelen sa integracijom i E2E **skipped** (CI ugovor); Perf smoke
+[`46041325817`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/46041325817) ✓.
