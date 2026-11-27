@@ -204,9 +204,9 @@ test.describe('46 passkeys (5.4.0-a/e)', () => {
     try {
       await admin.login(env.superAdminEmail, env.superAdminPassword);
       await clearLeftoverPasskeys(admin);
-      const { recoveryCodes } = await admin.requestJson<{ recoveryCodes: string[] }>(
+      const { recoveryCodes } = await admin.requestJsonWithTotp<{ recoveryCodes: string[] }>(
         '/auth/mfa/recovery-codes',
-        { method: 'POST', body: JSON.stringify({ code: await nextTotpCode(env.superAdminEmail) }) },
+        env.superAdminEmail,
       );
       if (recoveryCodes.length < 3) {
         throw new Error(`[e2e] expected at least three recovery codes, received ${recoveryCodes.length}`);

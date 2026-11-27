@@ -74,6 +74,56 @@ export function currentStep(): number {
   return Math.floor(Date.now() / PERIOD_MS);
 }
 
+/**
+ * The API code for "this time step is already used", not "this user is wrong".
+ *
+ * Replay protection is server-side and single-consumer: the counter lives on the
+ * account, but every E2E job keeps its own `lastStep` in `.auth/mfa.json`. Two CI
+ * runs sharing the stack (nightly full run + a PR smoke run, run 45973287907) can
+ * therefore spend the same 30 s step and the second one is refused. That is the
+ * replay guard working, not a product regression.
+ */
+export const TOTP_REPLAY_CODE = 'MFA_INVALID_CODE';
+
+export function isTotpReplayError(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const candidate = error as { readonly code?: unknown; readonly message?: unknown };
+  if (candidate.code === TOTP_REPLAY_CODE) return true;
+  return typeof candidate.message === 'string' && candidate.message.includes(TOTP_REPLAY_CODE);
+}
+
+/**
+ * Runs one TOTP-confirmed call, retrying with a **new** time step when the server
+ * reports that the step was already spent (see `isTotpReplayError`).
+ *
+ * A retry costs at most one time step (30 s) and only happens on a replay
+ * rejection — a wrong code, a locked account or a policy failure is thrown
+ * immediately. `nextCode` is injectable so the offline helper tests never touch
+ * the real store or the clock.
+ */
+export async function withFreshTotpCode<T>(
+  email: string,
+  attempt: (code: string) => Promise<T>,
+  options: {
+    readonly attempts?: number;
+    readonly nextCode?: (email: string) => Promise<string>;
+  } = {},
+): Promise<T> {
+  const attempts = options.attempts ?? 2;
+  const nextCode = options.nextCode ?? nextTotpCode;
+  let lastError: unknown = null;
+  for (let index = 0; index < attempts; index += 1) {
+    const code = await nextCode(email);
+    try {
+      return await attempt(code);
+    } catch (error) {
+      if (!isTotpReplayError(error)) throw error;
+      lastError = error;
+    }
+  }
+  throw lastError;
+}
+
 /** Next unused code for the account; waits for a new time step when needed. */
 export async function nextTotpCode(email: string): Promise<string> {
   const secret = readMfaSecret(email);

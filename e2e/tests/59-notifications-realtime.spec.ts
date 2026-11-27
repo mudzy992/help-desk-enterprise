@@ -54,14 +54,39 @@ test('a ticket reply reaches the requester notification panel over the socket', 
   await page.waitForTimeout(1_500);
   const matchingRows = panel.getByText(ticket.title, { exact: true });
   const initialCount = await matchingRows.count();
+  // A handshake that completed earlier does not prove the socket is still open:
+  // nightly run 45973287907 recorded eight stack restarts during the browser run,
+  // and a transport that closed in between can never deliver the frame below.
+  // Assert it right before the write so a dead channel is reported as such.
+  expect(readySockets.size).toBeGreaterThan(0);
   const message = await admin.requestJson<{ id: string }>(`/tickets/${ticket.id}/messages`, {
     method: 'POST',
     body: JSON.stringify({ idempotencyKey: randomUUID(), type: 'AGENT_REPLY', body: 'Disposable realtime test reply' }),
   });
-  await expect.poll(
-    () => frames.some((frame) => frame.includes('notification.created') && frame.includes(ticket.id) && frame.includes(message.id)),
-    { timeout: 30_000 },
-  ).toBe(true);
+  await expect
+    .poll(
+      () =>
+        frames.some(
+          (frame) =>
+            frame.includes('notification.created') &&
+            frame.includes(ticket.id) &&
+            frame.includes(message.id),
+        ),
+      { timeout: 30_000 },
+    )
+    .toBe(true)
+    .catch((error: unknown) => {
+      // Only a closed socket justifies this verdict: the message was accepted by
+      // the API and no frame can arrive over a transport that is gone. Anything
+      // else stays a product failure and keeps its original error.
+      if (readySockets.size === 0) {
+        throw new Error(
+          '[e2e] STACK_UNAVAILABLE: the Socket.IO transport closed while the reply was being delivered; ' +
+            'the notification frame could not arrive (see the stack probe timeline of this run).',
+        );
+      }
+      throw error;
+    });
   // The already-open panel is not reopened or refreshed by this test.
   await expect.poll(() => matchingRows.count(), { timeout: 15_000 }).toBeGreaterThan(initialCount);
 });

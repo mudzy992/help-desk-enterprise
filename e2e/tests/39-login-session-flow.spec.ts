@@ -1,7 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { ApiClient } from '../helpers/api-client';
 import { readE2EEnvironment } from '../helpers/environment';
-import { nextTotpCode } from '../helpers/mfa';
 
 /**
  * Paket 5.2.4 M2 (NISKO): end-to-end login → MFA → session → authorized call.
@@ -96,12 +95,8 @@ test.describe('39 login → MFA → session flow integrity (5.2.4 M2)', () => {
     // 4. Ispravan MFA kod postavlja sesijski kolačić sa očekivanim claimovima.
     const mfaToken = pendingBody.mfaToken;
     if (mfaToken === undefined) throw new Error('mfaToken missing after login');
-    const verified = await api.request('/auth/mfa/verify', {
-      method: 'POST',
-      body: JSON.stringify({
-        mfaToken,
-        code: await nextTotpCode(env.superAdminEmail),
-      }),
+    const verified = await api.requestWithTotp('/auth/mfa/verify', env.superAdminEmail, {
+      mfaToken,
     });
     expect(verified.status).toBe(200);
     const verifiedBody = (await verified.json()) as {
@@ -157,13 +152,11 @@ test.describe('39 login → MFA → session flow integrity (5.2.4 M2)', () => {
     if (pending.status !== 'MFA_REQUIRED' || pending.mfaToken === undefined) {
       throw new Error('Expected an MFA step for the extension sign-in.');
     }
-    const verified = await extension.request('/auth/extension/mfa/verify', {
-      method: 'POST',
-      body: JSON.stringify({
-        mfaToken: pending.mfaToken,
-        code: await nextTotpCode(env.superAdminEmail),
-      }),
-    });
+    const verified = await extension.requestWithTotp(
+      '/auth/extension/mfa/verify',
+      env.superAdminEmail,
+      { mfaToken: pending.mfaToken },
+    );
     expect(verified.status).toBe(200);
     const body = (await verified.json()) as { readonly accessToken?: string };
     expect(typeof body.accessToken).toBe('string');

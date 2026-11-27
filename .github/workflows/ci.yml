@@ -761,6 +761,17 @@ jobs:
     permissions:
       contents: read
       checks: write
+    # The stack is shared by every ref, and its MFA/replay, config and rate-limit
+    # state is per account, not per job. Nightly run 45973287907 (2026-11-27) went
+    # red on `37-authentication-security` (`MFA_INVALID_CODE` on a TOTP step that a
+    # concurrent PR run had already spent) and on a socket notification that died
+    # with a restart the probe timeline recorded. One browser run at a time keeps
+    # the shared stack "quiet", which is what the nightly contract already claims.
+    # `cancel-in-progress: false` matters: the nightly is the record and must not be
+    # cancelled by a later PR run; it queues instead.
+    concurrency:
+      group: e2e-shared-stack
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     # Pull request -> smoke subset (the gate); schedule -> full run; dispatch ->
     # triage or full. Package-level E2E runs are manually dispatched with the
@@ -1172,6 +1183,11 @@ jobs:
   # stack". The job is inert until somebody dispatches it with `install_spec` set.
   e2e-install-wizard:
     name: E2E install wizard
+    # Same shared stack, same exclusion: the wizard job must never overlap the
+    # smoke/triage run that completes the installation it is walking.
+    concurrency:
+      group: e2e-shared-stack
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     # The wizard job only ever runs on a human dispatch, so it is the one place where
     # `skip_gates` matters most: the whole point is to walk the wizard now, not after

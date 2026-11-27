@@ -70,8 +70,9 @@ kapija tako ne zavisi od okruženja.
 - **Preflight i tvrda e2e kapija** (`::error title=E2E did not run`) — ostaju; e2e se i dalje ne može „tiho
   preskočiti".
 - **Sekvencijalni pristup staging stacku**: `e2e/playwright.config.ts` je `fullyParallel: false`, `workers: 1`,
-  a specovi dijele iste podatke; `concurrency` grupa je i dalje po refu, pa se dva runa nad istim stackom ne
-  pokreću paralelno.
+  a specovi dijele iste podatke. Do 2026-11-27 je `concurrency` grupa bila samo po refu, pa su se **nightly
+  (`master`) i PR run (`arena/…`) mogli izvršavati paralelno nad istim stackom**; §10 to zatvara job-level
+  grupom `e2e-shared-stack`.
 - **Perf smoke** ostaje nepromijenjen (samo `pull_request` + ručno).
 
 ## 3. Dokazi (izvršeno u ovom okruženju, 2026-10-06)
@@ -248,3 +249,42 @@ Faktovi se čitaju kao **primalac**, jer SuperAdmin prije break-glasa može legi
 time postaje vidljiv **cijeloj ciljnoj grupi tog reda** — to je namjerno (ta grupa ga obrađuje), ali znači da
 `private.ticket.unroutedQueue.targetGroupId` treba birati kao grupu koja smije vidjeti i povjerljive tikete.
 
+## 10. Noćni run 45973287907 (2026-11-27): TOTP replay i mrtav socket, ne dvije regresije
+
+Noćni run [`45973287907`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45973287907)
+(`schedule`, `master` @ `20de2627`) pao je na `E2E critical flows` i `CI gate`; svi ostali poslovi (build/unit,
+PostgreSQL + Redis integracija, container + supply chain, frontend, Docs guard) bili su zeleni.
+Playwright: **125 prošlo, 2 pala, 4 flaky, 2 preskočena**, 55 minuta. Padovi (oba poslije `retries=1`, dakle
+dvaput):
+
+| Test | Poruka | Šta je stvarno bilo |
+|---|---|---|
+| `37-authentication-security.spec.ts:33` | `ApiRequestError: MFA_INVALID_CODE` na `POST /auth/mfa/recovery-codes` | server-side replay guard je odbio TOTP korak koji je **drugi run** već potrošio |
+| `59-notifications-realtime.spec.ts:9` | `expect.poll` na `notification.created` frame, 30 s timeout | socket je umro sa restartom stacka; frame nije mogao stići |
+
+**Zašto `37` nije regresija.** TOTP korak je single-use i to se pamti **na računu**, a svaki E2E job drži svoj
+`lastStep` u `e2e/.auth/mfa.json`. Noćni run je krenuo u 09:23 UTC; u 09:40 su istovremeno radili PR run i push
+run iste grane nad istim dijeljenim stackom. Dva nezavisna brojača koraka, jedan server-side brojač — drugi
+potrošač istog 30 s koraka dobija `MFA_INVALID_CODE`. To je replay zaštita koja radi, ne pokvaren login.
+
+**Zašto `59` nije regresija.** Watchdog je u istom runu zabilježio 8 epizoda neuspjelog `/health` između
+09:44:02 i 10:20:33 UTC (37 min, stack se vratio prije kraja joba). Socket test drži otvoren panel i traži
+frame za konkretan `messageId`; ako transport padne poslije `POST /tickets/:id/messages`, frame je izgubljen i
+nijedan retry ga ne može vratiti. Test to do sada nije razlikovao od „notifikacija nije poslana".
+
+**Popravke (paket `27f49610`).**
+
+| Popravka | Gdje | Efekat |
+|---|---|---|
+| Retry na replay, ne na grešku | `e2e/helpers/mfa.ts` (`withFreshTotpCode`, `isTotpReplayError`) + `e2e/helpers/api-client.ts` (`requestJsonWithTotp`, `requestWithTotp`) | `MFA_INVALID_CODE` ⇒ potroši **sljedeći** korak jednom; svaka druga greška se baca odmah. Svi API call siteovi (20, 37, 39, 46, 47) idu kroz helper |
+| Živ socket prije upisa i poslije njega | `e2e/tests/59-notifications-realtime.spec.ts` | provjera `readySockets` neposredno prije `POST`; ako transport padne u toku isporuke, pad nosi `STACK_UNAVAILABLE` i klasifikuje se kao `[stack]`, a ne kao tihi `false` |
+| Jedan browser run nad stackom | `.github/workflows/ci.yml` (`e2e`, `e2e-install-wizard`) | job-level `concurrency.group: e2e-shared-stack`, `cancel-in-progress: false` — nightly se **ne** otkazuje, nego čeka; PR run ne može trošiti iste račune paralelno |
+| Guard nad guardom | `scripts/check-workflows-yaml.test.mjs`, `e2e/unit/mfa-fresh-code.spec.ts` | brisanje concurrency grupe ili retry semantike ruši test bez stacka |
+
+**Dokaz.** Trijažni dispatch `45993969969` (`specs=37,59`, `retries=0`, `max_failures=8`, `skip_gates=true`) nad
+istim stackom: **10 prošlo, 0 palo, 0 flaky, 0 preskočeno** — oba testa iz noćnog pada, bez ijednog retryja.
+Push run `45993970452` (isti commit) zelen.
+
+**Šta ovo ne tvrdi.** Popravka ne dokazuje da je notifikacija uvijek isporučena — dokazuje da mrtav transport
+više ne izgleda kao tiha regresija i da mjerenje više ne zavisi od toga koji je run prvi potrošio TOTP korak.
+Reprodukcija je namjerno ostala na trijažnom dispatchingu (`specs=37,59`, `retries=0`) nad istim stackom.
