@@ -131,7 +131,7 @@ Prisma generator je u prethodnom modulu potvrđeno environment-blocked mrežnim 
 | BA-authorization-01 | P2       | Best-effort invalidacija može zadržati oduzeta prava do cache TTL-a                          | zatvoreno | M        |
 | BA-authorization-02 | P2       | Ne postoji potpuni route-to-authorization manifest i CI guard                                | zatvoreno | L        |
 | BA-authorization-03 | P2       | Read-only zaštita zavisi od ručno održavane liste ruta i trusted izuzetaka                   | zatvoreno (W2.27, [361](../implementation/361-w227-ba-authorization-03-read-only-route-census.md)) | M        |
-| BA-authorization-04 | P2       | Integracijski testni gate zavisi od mrežnog Prisma engine downloada                          | otvoreno | M        |
+| BA-authorization-04 | P2       | Integracijski testni gate zavisi od mrežnog Prisma engine downloada                          | zatvoreno (W2.28, [362](../implementation/362-w228-ba-authorization-04-prisma-precondition.md)) | M        |
 | BA-authorization-05 | P3       | Current-session response gubi scope uz permission capabilityje                               | otvoreno | M        |
 | BA-authorization-06 | P3       | Dekoratori prihvataju proizvoljne stringove umjesto catalog union tipa                       | otvoreno | S        |
 | BA-authorization-07 | P3       | Dupli `RoleGuard` + `OuAccessGuard` izvršavaju istu odluku i dedupeuju audit prve evaluacije | otvoreno | S        |
@@ -189,6 +189,14 @@ Prisma generator je u prethodnom modulu potvrđeno environment-blocked mrežnim 
 - **Korekcija:** zajednički backend-platform nalaz BA-authentication-07: pinovani engine u CI image/cacheu ili dozvoljeni mirror i eksplicitna generation precondition faza.
 - **Acceptance:** svih 25 suiteova i backend build prolaze bez implicitnog javnog runtime downloada.
 - **Owner:** backend platform/CI owner.
+- **Status (W2.28, 2026-11-27):** zatvoreno. Mehanizam iz W2.20 (`BA-authentication-07`) je bio ispravan, ali
+  je politika generisanja živjela u Jest `globalSetup`-u, pa `npm run build` na čistom checkoutu i dalje nije
+  bio samodovoljan, a dokaz nije pokrivao ovaj modul. Zajednička precondition faza
+  (`scripts/ensure-generated-prisma.mjs`) sada hrani `prebuild`, Jest (unit i izolovani integracijski runner) i
+  CLI (`npm run db:ensure-generated`); CI sa mrtvim mirrorom briše klijent i dokazuje `npm run build` **i**
+  `src/modules/authorization` (29 spec fajlova: 27 unit — 27 passed — i 2 real-DB integracijska koja idu kroz
+  integracijski posao). Broj compile-blocked suiteova je 0. Detalji:
+  [362](../implementation/362-w228-ba-authorization-04-prisma-precondition.md).
 
 ### BA-authorization-05 — Capability response bez scopea
 
@@ -284,7 +292,7 @@ Prisma generator je u prethodnom modulu potvrđeno environment-blocked mrežnim 
 | BA-authorization-01 | invalidator + cache TTL         | DB/Redis fault-injection matrica   |
 | BA-authorization-02 | controller census               | route policy registry CI guard     |
 | BA-authorization-03 | `admin-read-only-route-registry.ts` (74 rute po handleru) + interceptor | `admin-read-only-route-census.spec.ts` (census ⇄ manifest, 3 negativna testa) |
-| BA-authorization-04 | 15 pass / 10 blocked            | 25/25 suiteova + build             |
+| BA-authorization-04 | `ensure-generated-prisma.mjs` (prebuild + Jest + CLI) | `db:ensure-generated:test` 4/4 + CI: obrisan klijent → `npm run build` + 27/27 authorization suiteova |
 | BA-authorization-05 | current-session mapper          | scoped capability contract test    |
 | BA-authorization-06 | decorator signatures/evaluator  | unknown-token compile/runtime test |
 | BA-authorization-07 | reports/SLA guard lista         | single-decision audit test         |
