@@ -111,7 +111,19 @@ broj iz audita (10/25) je pao na 0.
 
 ### 3.3 CI
 
-_Detalji se dopunjavaju uz PR._
+PR #45, run `45975684235` — svi poslovi zeleni: `Backend build + test` (6m11s, uključuje oba nova offline
+dokaza), `Backend PostgreSQL + Redis integration` (14m29s), `Frontend build + test`, `Backend container +
+supply chain` (3m43s), `Docs guard`, `E2E critical flows` (9m59s), `CI gate`. Push run `45975676464` ✓ sa
+integracijom `skipped` (CI ugovor); Perf smoke `45975684055` ✓.
+
+Prvi prolaz je našao **stvarni defekt u paketu**: `prebuild` je importovao repo-root
+`scripts/check-generated-prisma.mjs`, a Docker builder ima build context `backend/` — u image-u tog fajla nema,
+pa je `docker build` pao na `ERR_MODULE_NOT_FOUND`. Popravka (`7cb35592`) seli ugovor o artefaktima u
+`backend/scripts/inspect-generated-prisma.mjs`; repo-root guard ga re-exportuje, pa CLI i njegovi testovi ostaju
+nepromijenjeni, a `ensure-generated-prisma.mjs` više ne dira parent direktorij.
+
+E2E je u četiri navrata padalo na `MFA_INVALID_CODE` i `ECONNREFUSED` (globalSetup), dok je u isto vrijeme i
+`master` scheduled run padao na istom dijeljenom stacku — infrastruktura, ne regresija; peti prolaz je zelen.
 
 ## 4. Šta paket mijenja u ponašanju
 
