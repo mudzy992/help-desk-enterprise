@@ -116,7 +116,14 @@ ostavlja stanje za sljedeće.
 
 ### 3.4 CI
 
-PR #48, run: vidi §6 (popunjava se iz runa).
+Prvi prolaz (run [`46005997535`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/46005997535)) je
+crven u `Backend PostgreSQL + Redis integration` — i to zbog **dokaza, ne koda**: dva nova scenarija su
+deklarisana prije postojećeg paralelnog testa, a on je brojao audit redove apsolutno (`toHaveLength(2)`), pa je
+vidio 4. Popravka (`a805b203`): svaki scenarij mjeri **prirast** i tvrdi na posljednjem redu, a redoslijed je
+deterministički (`createdAt`, `id`) jer dva upisa mogu pasti u istu milisekundu.
+
+Drugi prolaz, PR #48, run [`46009333502`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/46009333502)
+— svi poslovi zeleni:
 
 ## 4. Šta paket mijenja u ponašanju
 
@@ -147,10 +154,13 @@ PR #48, run: vidi §6 (popunjava se iz runa).
 
 | Posao | Ishod |
 | --- | --- |
-| `Backend build + test` | _popunjava se_ |
-| `Backend PostgreSQL + Redis integration` (migracija + 4 integracijska scenarija) | _popunjava se_ |
-| `Frontend build + test` | _popunjava se_ |
-| `Backend container + supply chain` | _popunjava se_ |
-| `Docs guard` | _popunjava se_ |
-| `E2E critical flows` | _popunjava se_ |
-| `CI gate` | _popunjava se_ |
+| `Backend build + test` | ✓ 5m40s |
+| `Backend PostgreSQL + Redis integration` (migracija `20271202160000` + 4 integracijska scenarija) | ✓ 22m6s |
+| `Frontend build + test` | ✓ 4m36s |
+| `Backend container + supply chain` | ✓ 4m22s |
+| `Docs guard` | ✓ 15s |
+| `E2E critical flows` | ✓ 9m51s |
+| `CI gate` | ✓ |
+
+Push run je zelen sa integracijom i E2E **skipped** (CI ugovor); Perf smoke
+[`46009333616`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/46009333616) ✓.
