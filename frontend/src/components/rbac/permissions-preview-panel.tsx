@@ -2,10 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { controlClassName, labelClassName } from "@/components/ui/control";
-import type {
-  RolePermissionPreviewResponse,
-  RolePermissionPreviewScope,
-} from "@/services/rbac-api";
+import type { RolePermissionPreviewResponse } from "@/services/rbac-api";
 
 interface PermissionsPreviewPanelProperties {
   readonly preview: RolePermissionPreviewResponse;
@@ -13,29 +10,6 @@ interface PermissionsPreviewPanelProperties {
   readonly onCancel: () => void;
   /** Paket 5.1 (M4 B2): the server stores the reason in the change log. */
   readonly onConfirm: (reason: string) => void;
-}
-
-/** W2.31 (`BA-rbac-03`): a decision is only meaningful together with its scope. */
-type Translate = (key: string, options?: Record<string, string | number>) => string;
-
-function scopeLabel(t: Translate, scope: RolePermissionPreviewScope): string {
-  if (scope.kind === "organizational-unit") {
-    return t("permissions.previewScopeOrganizationalUnit", {
-      name: scope.organizationalUnitName ?? scope.organizationalUnitPath ?? "",
-    });
-  }
-  if (scope.kind === "service") {
-    return t("permissions.previewScopeService", {
-      name: scope.serviceName ?? scope.serviceId ?? "",
-    });
-  }
-  if (scope.kind === "organizational-unit-and-service") {
-    return t("permissions.previewScopeOrganizationalUnitAndService", {
-      organizationalUnit: scope.organizationalUnitName ?? scope.organizationalUnitPath ?? "",
-      service: scope.serviceName ?? scope.serviceId ?? "",
-    });
-  }
-  return t("permissions.previewScopeGlobal");
 }
 
 export function PermissionsPreviewPanel({
@@ -83,7 +57,29 @@ export function PermissionsPreviewPanel({
             >
               <p className="font-medium text-foreground">{sample.displayName}</p>
               <p className="text-muted-foreground">{sample.permissionKey}</p>
-              <p className="text-muted-foreground">{scopeLabel(t, sample.scope)}</p>
+              <p className="text-muted-foreground">
+                {/* W2.31 (`BA-rbac-03`): the decision is only meaningful with its scope. */}
+                {sample.scope.kind === "organizational-unit"
+                  ? t("permissions.previewScopeOrganizationalUnit", {
+                      name:
+                        sample.scope.organizationalUnitName ??
+                        sample.scope.organizationalUnitPath ??
+                        "",
+                    })
+                  : sample.scope.kind === "service"
+                    ? t("permissions.previewScopeService", {
+                        name: sample.scope.serviceName ?? sample.scope.serviceId ?? "",
+                      })
+                    : sample.scope.kind === "organizational-unit-and-service"
+                      ? t("permissions.previewScopeOrganizationalUnitAndService", {
+                          organizationalUnit:
+                            sample.scope.organizationalUnitName ??
+                            sample.scope.organizationalUnitPath ??
+                            "",
+                          service: sample.scope.serviceName ?? sample.scope.serviceId ?? "",
+                        })
+                      : t("permissions.previewScopeGlobal")}
+              </p>
               <p className="mt-1 text-muted-foreground">
                 {t("permissions.previewDecisionChange", {
                   before: sample.before.decision,
