@@ -125,8 +125,17 @@ Lokalno (bez baze): `users + install + audit-log + notifications` ⇒ **788 pass
 
 ### 3.3 CI
 
-Vidi ledger (`W2.26`) i §3.3 ekvivalent u PR-u — puni `Backend PostgreSQL + Redis integration` (uključuje novi
-spec), `Backend build + test`, E2E i Perf smoke.
+PR #43, run `45956935765` — **svi poslovi zeleni**: `Backend build + test`, `Backend PostgreSQL + Redis integration`
+(14m3s, uključuje novi spec), `Frontend build + test`, `Backend container + supply chain`, `Docs guard`,
+`E2E critical flows` 27/27 bez flakea, `CI gate`. Push run `45956928588` ✓ sa integracijom `skipped` (CI ugovor),
+Perf smoke `45956935587` ✓.
+
+Prvi prolaz (`45955076835`) je pao u integraciji, i oba nalaza su bila stvarna defekta u **dokazu**:
+
+| Nalaz | Popravka |
+| --- | --- |
+| audit role granta visi na `UserRole` redu (`entityId = userRole.id`), pa upit po user id vidi samo `user.created` | upit pokriva oba identiteta iz istog commita |
+| pad SMTP-a je bio mockovan na `mailTransport`, ali je pošiljalac u cjelini mockovan — worker nikad ne vidi grešku i namjera se označi `SUCCEEDED` | pad je mock **odgovor pošiljaoca** (`sendTemporaryPasswordEmail → false`), što je i produkcijski oblik odgovora |
 
 ## 4. Šta paket mijenja u ponašanju
 
