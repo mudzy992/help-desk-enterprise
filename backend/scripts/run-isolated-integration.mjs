@@ -155,6 +155,9 @@ export const integrationSpecs = Object.freeze([
   // intent is a durable outbox row, and a failed cache notice never leaves the
   // removed permission effective.
   "src/modules/rbac/role-holders-invalidation.integration.spec.ts",
+  // W2.33 (BA-rbac-06): the preview counts distinct people, keeps the grant
+  // count next to it, and spends at most one sample row per person.
+  "src/modules/rbac/role-permission-preview-distinct-users.integration.spec.ts",
 ]);
 
 export function buildDatabaseName(index, spec) {

@@ -45,8 +45,10 @@ Postojeće ponašanje je kompatibilno; na primjer, kombinovani izvoz izvještaja
 1. Na ekranu **Permisije uloga** izaberite rolu u padajućoj listi **Odaberi ulogu** (uz naziv role piše i broj
    permisija koje trenutno ima).
 2. U katalogu **Permisije po ulozi** uključite/isključite permisije; katalog je grupisan po kategorijama.
-3. Kliknite **Pregled uticaja**. Prikazuje se **Pregled uticaja** s brojem pogođenih korisnika, koliko je
-   permisija dodano/uklonjeno i uzorkom korisnika s promjenom odluke (`prije → poslije`).
+3. Kliknite **Pregled uticaja**. Prikazuje se **Pregled uticaja** s brojem pogođenih **osoba**, koliko je
+   permisija dodano/uklonjeno i uzorkom korisnika s promjenom odluke (`prije → poslije`). Ako neko ima istu rolu u
+   više organizacionih jedinica ili servisa, broji se **jednom** kao osoba, a red ispod kaže koliko dodjela stoji
+   iza tog broja (npr. „3 dodjele za 1 različitog korisnika").
 4. Ako je pregled očekivan, upišite **Razlog promjene** (obavezno, do 500 znakova) i kliknite
    **Potvrdi i sačuvaj**; dugme **Odustani** zatvara pregled bez izmjene. Bez razloga dugme ostaje neaktivno.
 5. Promjena važi za **sve korisnike s tom rolom** i keš dozvola im se invalidira odmah; svaka promjena ulazi u
@@ -103,7 +105,7 @@ permisijom i ciljnim OU/resursom. Ako audit zapis nije dostupan, radnja se odbij
 |---|---|---|
 | Izbor role | mora postojati | bez odabrane role **Pregled uticaja** ne radi |
 | Permisije | moraju biti poznati ključevi iz kataloga | nepoznat ključ → odbijeno (`INVALID_PERMISSION_KEY`, 404) |
-| Pregled uticaja | prikazuje broj korisnika, dodano/uklonjeno, **efekat po scopeu** (globalno / unutar OJ / unutar servisa) i do 3 uzorka sa scopeom u kojem je odluka donesena; izdaje potvrdu koja važi **15 minuta**, samo za pregledani skup i samo jednom | „Nema uzoraka promjene odluke za pogođene korisnike.“ |
+| Pregled uticaja | prikazuje broj **različitih korisnika** (osoba, ne dodjela) uz broj dodjela kada se razlikuju, dodano/uklonjeno, **efekat po scopeu** (globalno / unutar OJ / unutar servisa) i do 3 uzorka — najviše jedan po osobi — sa scopeom u kojem je odluka donesena; izdaje potvrdu koja važi **15 minuta**, samo za pregledani skup i samo jednom | „Nema uzoraka promjene odluke za pogođene korisnike.“ |
 | Razlog promjene | obavezan, do 500 znakova | bez razloga **Potvrdi i sačuvaj** je neaktivno, a server odbija upis |
 | Potvrda | dugme postoji samo u pregledu i traži razlog | **Potvrdi i sačuvaj** / **Odustani** |
 | Zastario ili tuđi pregled | potvrda istekla (15 min), promijenjen skup permisija, izmijenjeno stanje role od pregleda ili pregled drugog administratora | `409 PREVIEW_STALE` |

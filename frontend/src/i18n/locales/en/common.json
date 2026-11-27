@@ -1664,6 +1664,7 @@
     "previewScopeOrganizationalUnit": "OU: {{name}}",
     "previewScopeService": "service: {{name}}",
     "previewScopeOrganizationalUnitAndService": "OU: {{organizationalUnit}} · service: {{service}}",
+    "previewAssignmentCount": "{{count}} grants across {{users}} distinct users",
     "previewScopeImpacts": "Effect by scope: {{global}} global · {{organizationalUnit}} within an OU · {{service}} within a service",
     "previewNoSamples": "No decision changes were sampled for affected users.",
     "confirmSave": "Confirm and save",

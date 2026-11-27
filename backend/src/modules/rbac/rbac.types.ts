@@ -59,7 +59,18 @@ export type RolePermissionPreviewResponse = {
   readonly proposedPermissionKeys: readonly string[];
   readonly addedPermissionKeys: readonly string[];
   readonly removedPermissionKeys: readonly string[];
+  /**
+   * W2.33 (`BA-rbac-06`): **distinct people**, not assignment rows. The same
+   * person can hold the same role in several OU/service scopes, and the question
+   * "who is affected" is about people.
+   */
   readonly affectedUserCount: number;
+  /**
+   * W2.33 (`BA-rbac-06`): the assignment rows behind that number. Kept next to
+   * the distinct count so an administrator can see that one person with three
+   * scoped assignments is one person but three grants.
+   */
+  readonly affectedAssignmentCount: number;
   /** W2.31 (`BA-rbac-03`): global vs OU vs service effect, counted before sampling. */
   readonly scopeImpacts: RolePermissionPreviewScopeImpacts;
   readonly samples: readonly RolePermissionPreviewSample[];
