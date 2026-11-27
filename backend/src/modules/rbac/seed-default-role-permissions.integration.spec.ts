@@ -74,12 +74,17 @@ describeIfDatabase('seed-default-role-permissions consent (BA-rbac-08)', () => {
   });
 
   it('hashes the plan, not the iteration order', async () => {
+    // The isolated database starts from the migration template, which already
+    // carries the system roles, so the baseline is measured, not assumed.
+    const rolesBefore = await database.role.count();
+    const linksBefore = await database.rolePermission.count();
     const first = await planFingerprint();
     const second = await planFingerprint();
     expect(first).toBe(second);
     expect(first).toMatch(/^[0-9a-f]{64}$/);
     // A dry run never writes.
-    expect(await database.role.count()).toBe(0);
+    expect(await database.role.count()).toBe(rolesBefore);
+    expect(await database.rolePermission.count()).toBe(linksBefore);
   });
 
   it('refuses a plain maintenance run and keeps the deliberate removal', async () => {
