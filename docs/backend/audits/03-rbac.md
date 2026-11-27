@@ -129,7 +129,7 @@ Blokada je isti reproducibility nalaz evidentiran u prethodna dva modula. Nije p
 | ---------- | -------- | ------------------------------------------------------------------------------------- | -------- | -------- |
 | BA-rbac-01 | P2       | Preview nije vezan za baseline/revision i može prepisati noviju izmjenu               | zatvoreno (W2.29, [363](../implementation/363-w229-ba-rbac-01-preview-baseline-cas.md)) | M        |
 | BA-rbac-02 | P2       | Preview token je ponovo upotrebljiv tokom cijelog TTL-a                               | zatvoreno (W2.30, [364](../implementation/364-w230-ba-rbac-02-single-use-preview.md)) | M        |
-| BA-rbac-03 | P2       | Scoped role impact preview može prikazati pogrešan rezultat                           | otvoreno | M        |
+| BA-rbac-03 | P2       | Scoped role impact preview može prikazati pogrešan rezultat                           | zatvoreno (W2.31, [365](../implementation/365-w231-ba-rbac-03-scope-aware-preview.md)) | M        |
 | BA-rbac-04 | P2       | `SUPER_ADMIN` permission matrica je uređiva, ali runtime je ignoriše                  | zatvoreno | S        |
 | BA-rbac-05 | P2       | Post-commit invalidacija nosilaca nije durable niti fail-closed                       | otvoreno | M        |
 | BA-rbac-06 | P3       | Preview broj pogođenih broji assignment redove, ne jedinstvene korisnike              | otvoreno | S        |
@@ -174,6 +174,13 @@ Blokada je isti reproducibility nalaz evidentiran u prethodna dva modula. Nije p
 - **Korekcija:** evaluirati svaku pogođenu assignment stavku u njenom OU/service scopeu; report treba razlikovati globalni, OU i service efekat.
 - **Acceptance:** OU-scoped i service-scoped fixture prikazuju tačan allow→deny ili deny→allow uz scope identitet.
 - **Owner:** RBAC + authorization owner.
+- **Zatvoreno u W2.31** ([365](../implementation/365-w231-ba-rbac-03-scope-aware-preview.md)): preview čita
+  assignment (`organizationalUnitId`, `serviceId`, imena i `ouPath`) i evaluira svaki promijenjeni ključ **u scopeu
+  assignmenta** (`require*Scope: true` + ID-evi tog assignmenta); scope-agnostic ključevi se evaluiraju i globalno,
+  jer ih evaluator dodjeljuje bez obzira na scope. Uzorak nosi `assignmentId` + `scope.kind`/ime/`ouPath`, a novi
+  `scopeImpacts` broji sve promijenjene odluke po scopeu. Dokaz: 5 unit scenarija (OU, servis, OU+servis,
+  scope-agnostic, unscoped) + real-DB `role-permission-preview-scope.integration.spec.ts` sa tri fixture korisnika
+  i `ouPath`/`serviceName` pročitanim iz baze.
 
 ### BA-rbac-04 — Uređivanje `SUPER_ADMIN` matrice nema runtime efekt
 
@@ -279,7 +286,7 @@ Blokada je isti reproducibility nalaz evidentiran u prethodna dva modula. Nije p
 | ---------- | ----------------------------- | ------------------------------------------ |
 | BA-rbac-01 | paralelni A/B preview         | baseline CAS u transakciji odbija drugi PUT (`PREVIEW_STALE`, bez upisa/audita) |
 | BA-rbac-02 | isti token dva puta           | drugi PUT `PREVIEW_CONSUMED`, bez upisa i bez audit reda (claim u transakciji) |
-| BA-rbac-03 | OU/service assignment fixture | scope-aware impact report                  |
+| BA-rbac-03 | OU/service assignment fixture | scope-aware impact report (uzorak nosi `scope`, `scopeImpacts` broji po scopeu) |
 | BA-rbac-04 | SUPER_ADMIN replace test      | immutable greška ili stvarni runtime efekt |
 | BA-rbac-05 | invalidator/Redis fault       | nema stale prava nakon uspješnog API-ja    |
 | BA-rbac-06 | dupli scoped assignment       | distinct user count/sample                 |

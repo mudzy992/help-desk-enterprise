@@ -3428,7 +3428,7 @@
     {
       "id": "BA-rbac-03",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno (W2.31, [365](../implementation/365-w231-ba-rbac-03-scope-aware-preview.md))",
       "source": "03-rbac.md",
       "owner": "WS-A",
       "wave": 2

@@ -19,11 +19,33 @@ export type ShadowAuthorizationReport = {
   readonly reason: string;
 };
 
+/// W2.31 (`BA-rbac-03`): every sample names the scope the decision was made in.
+export type RolePermissionPreviewScopeKind =
+  "global" | "organizational-unit" | "service" | "organizational-unit-and-service";
+
+export type RolePermissionPreviewScope = {
+  readonly kind: RolePermissionPreviewScopeKind;
+  readonly organizationalUnitId: string | null;
+  readonly organizationalUnitName: string | null;
+  readonly organizationalUnitPath: string | null;
+  readonly serviceId: string | null;
+  readonly serviceName: string | null;
+};
+
+export type RolePermissionPreviewScopeImpacts = {
+  readonly global: number;
+  readonly "organizational-unit": number;
+  readonly service: number;
+  readonly "organizational-unit-and-service": number;
+};
+
 export type RolePermissionPreviewSample = {
   readonly userId: string;
   readonly displayName: string;
   readonly email: string;
+  readonly assignmentId: string;
   readonly permissionKey: string;
+  readonly scope: RolePermissionPreviewScope;
   readonly before: ShadowAuthorizationReport;
   readonly after: ShadowAuthorizationReport;
 };
@@ -40,6 +62,8 @@ export type RolePermissionPreviewResponse = {
   readonly addedPermissionKeys: readonly string[];
   readonly removedPermissionKeys: readonly string[];
   readonly affectedUserCount: number;
+  /** W2.31 (`BA-rbac-03`): global vs OU vs service effect, counted before sampling. */
+  readonly scopeImpacts: RolePermissionPreviewScopeImpacts;
   readonly samples: readonly RolePermissionPreviewSample[];
 };
 

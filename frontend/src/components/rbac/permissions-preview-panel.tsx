@@ -33,15 +33,53 @@ export function PermissionsPreviewPanel({
           removed: preview.removedPermissionKeys.length,
         })}
       </p>
+      {preview.scopeImpacts["organizational-unit"] > 0 ||
+      preview.scopeImpacts.service > 0 ||
+      preview.scopeImpacts["organizational-unit-and-service"] > 0 ? (
+        <p className="mt-1 text-[12px] text-muted-foreground">
+          {t("permissions.previewScopeImpacts", {
+            global: preview.scopeImpacts.global,
+            organizationalUnit:
+              preview.scopeImpacts["organizational-unit"] +
+              preview.scopeImpacts["organizational-unit-and-service"],
+            service:
+              preview.scopeImpacts.service +
+              preview.scopeImpacts["organizational-unit-and-service"],
+          })}
+        </p>
+      ) : null}
       {preview.samples.length > 0 ? (
         <ul className="mt-3 space-y-2">
           {preview.samples.map((sample) => (
             <li
-              key={`${sample.userId}-${sample.permissionKey}`}
+              key={`${sample.assignmentId}-${sample.permissionKey}-${sample.scope.kind}`}
               className="rounded border border-border/70 px-3 py-2 text-[12px]"
             >
               <p className="font-medium text-foreground">{sample.displayName}</p>
               <p className="text-muted-foreground">{sample.permissionKey}</p>
+              <p className="text-muted-foreground">
+                {/* W2.31 (`BA-rbac-03`): the decision is only meaningful with its scope. */}
+                {sample.scope.kind === "organizational-unit"
+                  ? t("permissions.previewScopeOrganizationalUnit", {
+                      name:
+                        sample.scope.organizationalUnitName ??
+                        sample.scope.organizationalUnitPath ??
+                        "",
+                    })
+                  : sample.scope.kind === "service"
+                    ? t("permissions.previewScopeService", {
+                        name: sample.scope.serviceName ?? sample.scope.serviceId ?? "",
+                      })
+                    : sample.scope.kind === "organizational-unit-and-service"
+                      ? t("permissions.previewScopeOrganizationalUnitAndService", {
+                          organizationalUnit:
+                            sample.scope.organizationalUnitName ??
+                            sample.scope.organizationalUnitPath ??
+                            "",
+                          service: sample.scope.serviceName ?? sample.scope.serviceId ?? "",
+                        })
+                      : t("permissions.previewScopeGlobal")}
+              </p>
               <p className="mt-1 text-muted-foreground">
                 {t("permissions.previewDecisionChange", {
                   before: sample.before.decision,

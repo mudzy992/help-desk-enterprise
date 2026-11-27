@@ -103,7 +103,7 @@ permisijom i ciljnim OU/resursom. Ako audit zapis nije dostupan, radnja se odbij
 |---|---|---|
 | Izbor role | mora postojati | bez odabrane role **Pregled uticaja** ne radi |
 | Permisije | moraju biti poznati ključevi iz kataloga | nepoznat ključ → odbijeno (`INVALID_PERMISSION_KEY`, 404) |
-| Pregled uticaja | prikazuje broj korisnika, dodano/uklonjeno i do 3 uzorka; izdaje potvrdu koja važi **15 minuta** i samo za pregledani skup | „Nema uzoraka promjene odluke za pogođene korisnike.“ |
+| Pregled uticaja | prikazuje broj korisnika, dodano/uklonjeno, **efekat po scopeu** (globalno / unutar OJ / unutar servisa) i do 3 uzorka sa scopeom u kojem je odluka donesena; izdaje potvrdu koja važi **15 minuta**, samo za pregledani skup i samo jednom | „Nema uzoraka promjene odluke za pogođene korisnike.“ |
 | Razlog promjene | obavezan, do 500 znakova | bez razloga **Potvrdi i sačuvaj** je neaktivno, a server odbija upis |
 | Potvrda | dugme postoji samo u pregledu i traži razlog | **Potvrdi i sačuvaj** / **Odustani** |
 | Zastario ili tuđi pregled | potvrda istekla (15 min), promijenjen skup permisija, izmijenjeno stanje role od pregleda ili pregled drugog administratora | `409 PREVIEW_STALE` |
