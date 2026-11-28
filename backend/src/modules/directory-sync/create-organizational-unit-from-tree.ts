@@ -3,6 +3,7 @@ import {
   invalidateOrganizationalUnitScopeCache,
 } from '../../common/cache/scope-catalog-cache';
 import type { Prisma } from '../../generated/prisma/client';
+import { formatDistinguishedNameAttribute } from '../../common/ldap/rfc4514-distinguished-name';
 import type { OrganizationalUnitType } from '../../generated/prisma/enums';
 import type { PrismaService } from '../../common/prisma/prisma.service';
 import { auditLogActions } from '../audit-log/audit-log.constants';
@@ -104,8 +105,11 @@ export async function createOrganizationalUnitFromTree(
       }
 
       const ouPath = parent === null ? `/${name}` : `${parent.ouPath}/${name}`;
+      // W2.37: the RDN is escaped per RFC 4514 and the parent DN is used as it is
+      // already canonical (it comes from the tree, not from the browser).
+      const rdn = formatDistinguishedNameAttribute('OU', name);
       const distinguishedName =
-        parent === null ? `OU=${name},${namespaceSuffix}` : `OU=${name},${parent.distinguishedName}`;
+        parent === null ? `${rdn},${namespaceSuffix}` : `${rdn},${parent.distinguishedName}`;
       await assertIdentityIsAvailable(transaction, { ouPath, distinguishedName });
       await assertCatalogPathIsAvailable(transaction, { ouPath, distinguishedName });
 

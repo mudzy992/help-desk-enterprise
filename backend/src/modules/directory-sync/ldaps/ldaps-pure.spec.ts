@@ -40,6 +40,21 @@ describe('LDAPS helpers (paket 1.8)', () => {
     expect(organizationalUnitPathFromDistinguishedName('DC=example,DC=com')).toBeNull();
   });
 
+  it('splits only on real separators, including a value that ends in an escaped backslash (W2.37)', () => {
+    // `CN=a\\` is the value `a\`; the following comma is a separator again.
+    expect(parentDistinguishedName('CN=a\\\\,OU=Visoko,DC=local')).toBe('OU=Visoko,DC=local');
+    expect(parentDistinguishedName('CN=Anić\\, Ana,OU=Visoko,DC=local')).toBe(
+      'OU=Visoko,DC=local',
+    );
+    // A multi-valued RDN is one RDN; its attributes are flattened for mapping.
+    expect(parseDistinguishedName('CN=A+OU=B,DC=local')).toEqual([
+      { type: 'CN', value: 'A' },
+      { type: 'OU', value: 'B' },
+      { type: 'DC', value: 'local' },
+    ]);
+    expect(isDistinguishedNameWithin('OU=Visoko,OU=Korisnici\\, Inc.,DC=local', 'ou=korisnici\\, inc., dc=local')).toBe(true);
+  });
+
   it('classifies units per RAW §17–20', () => {
     const at = (path: string) => classifyOrganizationalUnit({ path, rootPath: '/Korisnici' });
     expect(at('/Korisnici')).toBe('DIRECTORATE');

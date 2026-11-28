@@ -204,7 +204,7 @@ Ovo nije zeleni gate. Blokada je isti checkout reproducibility problem evidentir
 | BA-organizational-units-04 | P2       | Case-insensitive DN identitet nije enforcean u bazi                                  | otvoreno | M        |
 | BA-organizational-units-05 | P2       | Principal invalidacija nakon mapping/deletea je optional i best effort               | otvoreno | M        |
 | BA-organizational-units-06 | P2       | Globalni tree read izlaže internu LDAP/topološku metadata svim korisnicima           | zatvoreno (W2.36, [371](../implementation/371-w236-ba-organizational-units-06-tree-shape.md)) | M        |
-| BA-organizational-units-07 | P2       | DN parser/rewrite ne podržava realni RFC 4514 skup                                   | otvoreno | M        |
+| BA-organizational-units-07 | P2       | DN parser/rewrite ne podržava realni RFC 4514 skup                                   | zatvoreno (W2.37, [374](../implementation/374-w237-ba-organizational-units-07-rfc4514.md)) | M        |
 | BA-organizational-units-08 | P3       | Tree/detail/user read i descendant rewrite nemaju operativne granice                 | otvoreno | M        |
 | BA-organizational-units-09 | P3       | No-op PATCH piše update i audit bez stvarne promjene                                 | otvoreno | S        |
 
@@ -452,3 +452,28 @@ frontend **65 fajlova / 265 testova** (organizational-units + directory + ticket
 **Šta ovaj paket ne tvrdi.** Ne mijenja skup vidljivih grana za neprivilegovane pozivaoce (to je W2.9 scope
 politika), ne dira `GET /organizational-units/:id` (već je `organizationalUnit.manage`) i ne uvodi reviziju ili
 keš za tree — keširanje i operativne granice su `BA-organizational-units-08`.
+
+## 18. Implementacijski closeout — W2.37 (`BA-organizational-units-07`)
+
+**Nalaz.** DN ugovor nije bio provider-neutralan: parser je radio `split(',')`, rewrite je bio string
+suffix, nije bilo escaped separatora, multi-valued RDN ni hex pravila, a descendant rewrite nije ponavljao
+validaciju dužine. Provjera je pokazala i više od nalaza — backend je imao **dva** parsera: API normalizatori
+(`organizational-units`, `directory-sync`, oba `split(',')`) i LDAPS parser
+(`ldaps/distinguished-name.ts`, unescape regexom, `endsWith(',<base>')`, `(?<!\\),` regex), pa su manual i sync
+tok mogli dati različit odgovor o istom imenu.
+
+**Korekcija.** `common/ldap/rfc4514-distinguished-name.ts` je jedini čitač/pisač: RDN parser s escapes,
+heksadecimalnim bajt-escape, quoted vrijednostima, `#hexstring`, multi-valued RDN i UTF-8; kanonski oblik za
+pohranu; **jedan case-folded usporedni ključ** za manual i sync; RDN-aware `within-base`, `strict-descendant`
+i `rewrite-ancestor`. Moduli zadržavaju svoje error kodove (`INVALID_DISTINGUISHED_NAME` / `INVALID_SCOPE`), a
+`ldaps/distinguished-name.ts` je sada tanka projekcija na stari ugovor.
+
+**Acceptance iz §14 (red 07).** Fixturei s escaped comma/plus/backslash, Unicode, case varijantama i
+maksimalnim descendant rewriteom prolaze **deterministički**; prekoračenje limita poslije rewritea daje
+dokumentovanu grešku (`INVALID_DISTINGUISHED_NAME`), a ne zapis izvan ugovora. Podržani subset je eksplicitno
+dokumentovan: `/` u vrijednosti, prazna vrijednost, tip van `OU/DC/CN/O` i DN > 1024 znaka ostaju odbijeni;
+`#hexstring` se ne dekodira (nema BER čitača) nego se čuva i poredi kao payload.
+
+**Veza s otvorenim nalazima.** Novi usporedni ključ je **preduslov, ne zamjena** za `BA-organizational-units-04`
+(DB-enforced case-insensitive identitet traži migraciju i collision report iz Faze 3/4), a operativne granice
+rewritea ostaju `BA-organizational-units-08`. Detalji: [374](../implementation/374-w237-ba-organizational-units-07-rfc4514.md).

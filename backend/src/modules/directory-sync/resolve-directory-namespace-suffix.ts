@@ -1,4 +1,8 @@
 import type { Prisma } from '../../generated/prisma/client';
+import {
+  formatDistinguishedName,
+  parseDistinguishedName,
+} from '../../common/ldap/rfc4514-distinguished-name';
 
 /**
  * W2.36c: the manual catalogue and the real OU tree used to grow in two different
@@ -14,12 +18,11 @@ import type { Prisma } from '../../generated/prisma/client';
 export function directoryNamespaceSuffixOf(
   distinguishedName: string,
 ): string | null {
-  const commaIndex = distinguishedName.indexOf(',');
-  if (commaIndex === -1) {
+  const relatives = parseDistinguishedName(distinguishedName);
+  if (relatives.length <= 1) {
     return null;
   }
-  const suffix = distinguishedName.slice(commaIndex + 1).trim();
-  return suffix.length === 0 ? null : suffix;
+  return formatDistinguishedName(relatives.slice(1));
 }
 
 /**

@@ -1,3 +1,4 @@
+import { formatDistinguishedNameAttribute } from '../../common/ldap/rfc4514-distinguished-name';
 import { buildInstallSeedSlug } from './build-install-seed-slug';
 import { installSeedConstants, installSeedErrorCodes } from './install-seed.constants';
 import { InstallSeedError } from './install-seed.error';
@@ -77,7 +78,7 @@ export function resolveInstallSeedNames(input?: InstallSeedNameInput): InstallSe
     // operator's name (`OU=Direkcija,DC=local` when nothing was typed).
     distinguishedName: isDefaultUnit
       ? defaultInstallSeedNames.distinguishedName
-      : `OU=${organizationalUnitName},DC=local`,
+      : `${formatDistinguishedNameAttribute('OU', organizationalUnitName)},DC=local`,
     fallbackGroupName,
     fallbackGroupKey: isDefaultGroup
       ? defaultInstallSeedNames.fallbackGroupKey
