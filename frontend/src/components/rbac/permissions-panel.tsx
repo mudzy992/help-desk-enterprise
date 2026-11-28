@@ -9,6 +9,7 @@ import { controlCompactClassName } from "@/components/ui/control";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import { groupPermissionsByCategory } from "@/lib/rbac/group-permissions-by-category";
+import { roleKeys } from "@/lib/session/permission-keys";
 import { mapRbacError, type RbacErrorKey } from "@/lib/rbac/map-rbac-error";
 import { readApiRequestId } from "@/lib/map-api-error";
 import {
@@ -40,6 +41,25 @@ export function PermissionsPanel() {
    */
   const [savedNotRefreshed, setSavedNotRefreshed] = useState(false);
   const groups = useMemo(() => groupPermissionsByCategory(catalog), [catalog]);
+  /**
+   * W2.36b: the server refuses every write to the SuperAdmin matrix
+   * (`SYSTEM_ROLE_PERMISSIONS_IMMUTABLE`) because runtime SuperAdmin authority is
+   * the full catalog. Before this flag the refusal reached the operator as a 403
+   * "you may not manage role permissions" — from the account that may. The panel
+   * now says why the matrix is locked instead of offering a save that cannot run.
+   */
+  const isSystemRole = selectedRoleKey === roleKeys.superAdmin;
+  /**
+   * W2.36b: the stored SuperAdmin rows are a snapshot of the catalog taken when the
+   * role was seeded, so a permission added later shows up unchecked — which reads
+   * as "SuperAdmin is missing a permission" while the runtime evaluator allows it
+   * everything (`SUPER_ADMIN_ALLOWED`). For the system role the panel therefore
+   * renders the runtime truth: all catalog entries on, none of them editable.
+   */
+  const shownEnabledKeys = useMemo(
+    () => (isSystemRole ? catalog.map((entry) => entry.key) : enabledKeys),
+    [catalog, enabledKeys, isSystemRole],
+  );
 
   const loadRolePermissions = useCallback(async (roleKey: string) => {
     setEnabledKeys(await getRolePermissions(roleKey));
@@ -205,9 +225,35 @@ export function PermissionsPanel() {
           </div>
         </div>
       ) : null}
-      <PermissionsCatalogList groups={groups} enabledKeys={enabledKeys} onToggle={handleToggle} />
+      {isSystemRole ? (
+        <div className="px-4 pb-3">
+          <div
+            role="status"
+            className="grid gap-1 rounded-md border border-border/70 bg-muted/40 px-3 py-2"
+            data-testid="permissions-system-role-note"
+          >
+            <p className="text-[12.5px] font-medium text-foreground">
+              {t("permissions.systemRoleImmutableTitle")}
+            </p>
+            <p className="text-[12px] text-muted-foreground">
+              {t("permissions.systemRoleImmutableBody")}
+            </p>
+          </div>
+        </div>
+      ) : null}
+      <PermissionsCatalogList
+        groups={groups}
+        enabledKeys={shownEnabledKeys}
+        onToggle={handleToggle}
+        readOnly={isSystemRole}
+      />
       <div className="border-t border-border/70 px-4 py-3">
-        <Button type="button" size="sm" onClick={() => void handlePreview()} disabled={pending}>
+        <Button
+          type="button"
+          size="sm"
+          onClick={() => void handlePreview()}
+          disabled={pending || isSystemRole}
+        >
           {t("permissions.previewAction")}
         </Button>
       </div>
