@@ -319,9 +319,11 @@ provajdera.
 - E-mail kanal se ne mockuje: in-app notifikacije, šabloni, delivery redovi i health panel rade dalje i bilježe
   `email_channel_disabled`; noćni run i dalje pokriva stvarno slanje.
 
-**Kako se vidi u runu.** Odluka gejta se upisuje u `e2e/test-results/outbound-email-gate.json`, a taj direktorij
-ide u `playwright-report` artifact: `{requested, channelBefore, channelClosed, restoredTo}` — dakle iz artefakta je
-vidljivo je li kanal zaista zatvoren i vraćen, bez čitanja loga.
+**Kako se vidi u runu.** Odluka gejta se upisuje u `e2e/test-results/outbound-email-gate.json`
+(`{requested, channelBefore, channelClosed, restoredTo}`), a taj direktorij ide u `playwright-report` artifact.
+Iznad toga, korak **„Report the outbound e-mail gate"** (`if: always()`) čita taj fajl i ispisuje ga kao
+`::notice` check-run annotaciju — pa je iz samog runa (bez loga i bez artefakta) vidljivo je li kanal za PR
+zatvoren i je li poslije vraćen; ako fajl ne postoji, annotacija to kaže eksplicitno umjesto da prećuti.
 
 **Šta ovo ne tvrdi.** Mapiranje ne dokazuje da je odabrani spec dovoljan za svaku izmjenu — dokazuje da nepoznata
 izmjena ne može ostati bez browsera. Zato je fallback širi od mapiranog skupa, a ne obrnuto.

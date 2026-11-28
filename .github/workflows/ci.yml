@@ -1227,6 +1227,21 @@ jobs:
             e2e/stack-watch.json
           if-no-files-found: ignore
           retention-days: 14
+      - name: Report the outbound e-mail gate
+        if: ${{ always() }}
+        # The channel is a stack-side setting, so its state is not visible in the
+        # run otherwise. `e2e/helpers/outbound-email-gate.ts` writes what it did to
+        # `test-results/outbound-email-gate.json`; this step turns that into a
+        # check-run annotation, which is the run's own record that the channel was
+        # closed for a pull request and restored afterwards.
+        run: |
+          note="test-results/outbound-email-gate.json"
+          if [ -f "$note" ]; then
+            body="$(tr -d '\n' < "$note" | sed 's/  */ /g')"
+            echo "::notice title=Outbound e-mail gate::$body"
+          else
+            echo "::notice title=Outbound e-mail gate::no note file - the suite did not reach global setup"
+          fi
       - name: Test the JSON summarizer and the stack watchdog
         if: ${{ always() }}
         run: node --test scripts/summarize-playwright-json.test.mjs scripts/run-e2e.test.mjs scripts/report-stack-outage.test.mjs

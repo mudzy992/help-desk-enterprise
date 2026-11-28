@@ -49,17 +49,16 @@ const notePath = (): string =>
   process.env.E2E_EMAIL_GATE_NOTE ?? path.join('test-results', 'outbound-email-gate.json');
 
 /**
- * GitHub turns `::notice` lines from the job log into check-run annotations, which
- * are readable through the API even when the job log and the artifacts are not
- * (both live on a host this sandbox cannot reach). The line therefore carries no
- * secret and is the machine-readable proof that the gate ran.
+ * The same decision is logged and written to the note file; the workflow step
+ * "Report the outbound e-mail gate" turns the file into a check-run annotation, so
+ * the record survives even when the job log is not readable.
  */
 function announce(note: GateNote): void {
   const closed = note.channelClosed ? 'closed' : 'open';
   console.log(
-    `::notice title=Outbound e-mail gate::requested=${note.requested} channelBefore=${String(
-      note.channelBefore,
-    )} channel=${closed} restoredTo=${String(note.restoredTo)}`,
+    `[e2e] outbound e-mail gate requested=${note.requested} ` +
+      `channelBefore=${String(note.channelBefore)} channel=${closed} ` +
+      `restoredTo=${String(note.restoredTo)}`,
   );
 }
 
