@@ -288,3 +288,56 @@ Push run `45993970452` (isti commit) zelen.
 **Šta ovo ne tvrdi.** Popravka ne dokazuje da je notifikacija uvijek isporučena — dokazuje da mrtav transport
 više ne izgleda kao tiha regresija i da mjerenje više ne zavisi od toga koji je run prvi potrošio TOTP korak.
 Reprodukcija je namjerno ostala na trijažnom dispatchingu (`specs=37,59`, `retries=0`) nad istim stackom.
+
+## 11. Dupli runovi, mapiranje specova i tihi e-mail (2026-11-27)
+
+**Povod.** PR #52 (`W2.34`) je imao dva runa: `46061230132` na code commitu i `46064203121` na docs commitu
+(`EXECUTION-PLAN-REMAINING.md` + jedan closeout). Drugi je ponovio **cijeli** matriks — backend 6m47s, integracija
+22m26s, frontend 3m35s, container 2m57s, E2E 10m26s — jer `changes` radi `git diff --name-only origin/master HEAD`,
+tj. gleda **cijeli PR**, a ne zadnji commit. U prozoru `W2.29`–`W2.34` bilo je 12 PR E2E runova; četiri su bila
+docs-only commitovi na već zelenom PR-u. Nijedan od tih runova nije uhvatio regresiju, a specovi `01/02/03` prave
+tikete kroz UI, pa stack pri tome **stvarno** šalje notifikacioni e-mail — svaki run i svaki rerun troše dnevnu kvotu
+provajdera.
+
+**Šta je promijenjeno.**
+
+| Tačka | Prije | Sada | Dokaz |
+|---|---|---|---|
+| Obim posla za PR | diff `origin/base..HEAD` (cijeli PR) | `scripts/ci-change-scope.mjs`: posao se preskače **samo** kad je sve od zadnjeg **zelenog** PR runa dokumentacija; inače sve ide | 9 testova u `scripts/ci-change-scope.test.mjs` |
+| E2E skup na PR-u | fiksno `01,02,03,15,22,54` | `scripts/e2e-spec-selection.mjs`: putanja → spec, fallback na istih šest za sve nepoznato i kad unija pređe 4 fajla | 11 testova u `scripts/e2e-spec-selection.test.mjs` (uključujući provjeru da svaki broj postoji u `e2e/tests`) |
+| Preklapanje runova | workflow `concurrency` sa `cancel-in-progress` samo na PR | **nepromijenjeno** — `group: ci-${{ github.workflow }}-${{ github.ref }}`, `cancel-in-progress` na PR; master run se ne otkazuje jer je zapis | `.github/workflows/ci.yml` (postavljeno 2026-10-06) |
+| E-mail u PR smoke runu | `E2E_ALLOW_EMAIL_SEND` čuva samo eksplicitni send u specu 18; `01/02/03` šalju mimo njega | `E2E_DISABLE_EMAIL_CHANNEL=1` na PR-u: suite zatvori kanal kroz settings API i vrati ga u teardownu; noćni run ga ostavlja otvorenog | `e2e/helpers/outbound-email-gate.ts` + 9 unit testova |
+
+**Zašto ovo ne slabi kapiju.**
+
+- `CI gate` ostaje jedini obavezni status check i ostaje `always()`; tabela u summary-ju sada ispisuje i
+  `Scope: <scope> - <razlog>` i `E2E specs: <lista> (<razlog>)`, pa se preskočeno vidi, a ne pretpostavlja.
+- Preskakanje je dozvoljeno **samo** kad je zadnji zeleni run te grane prošao cijeli workflow, a sve između je
+  dokumentacija. Nema zelenog runa, nema API dozvole, ili nepoznat diff ⇒ sve se vrti (fail-safe).
+- Mapiranje nikad ne smanjuje skup ispod onoga što može uhvatiti promjenu: nepoznata putanja, `common/**`,
+  `app.module.ts`, `prisma/**`, `.github/**` i svaka unija veća od četiri fajla vraćaju **punih šest**.
+- E-mail kanal se ne mockuje: in-app notifikacije, šabloni, delivery redovi i health panel rade dalje i bilježe
+  `email_channel_disabled`; noćni run i dalje pokriva stvarno slanje.
+
+**Kako se vidi u runu.** Odluka gejta se upisuje u `e2e/test-results/outbound-email-gate.json`
+(`{requested, channelBefore, channelClosed, restoredTo}`), a taj direktorij ide u `playwright-report` artifact.
+Iznad toga, korak **„Report the outbound e-mail gate"** (`if: always()`) čita taj fajl i ispisuje ga kao
+`::notice` check-run annotaciju — pa je iz samog runa (bez loga i bez artefakta) vidljivo je li kanal za PR
+zatvoren i je li poslije vraćen; ako fajl ne postoji, annotacija to kaže eksplicitno umjesto da prećuti.
+
+**Šta ovo ne tvrdi.** Mapiranje ne dokazuje da je odabrani spec dovoljan za svaku izmjenu — dokazuje da nepoznata
+izmjena ne može ostati bez browsera. Zato je fallback širi od mapiranog skupa, a ne obrnuto.
+
+**Ishod prvog dana (2026-11-27/28).**
+
+| Run | Commit | Rezultat | Šta je pokazao |
+|---|---|---|---|
+| `46080648126` (push) | `03700531` | ✗ | `Frontend build + test` je pao na koraku koji testira sam workflow-YAML guard: test je tražio stari bash `case` literal iz `ci.yml`, a klasifikacija se preselila u `scripts/ci-change-scope.mjs`. Guard sada provjerava `classifyPath()` iz modula (16/16). Run je pošteno pao — nije bio zelen. |
+| `46081404211` (PR) | `5705fa96` | ✓ | Prvi puni PR run: backend, integracija, frontend, container, docs i E2E zeleni; `E2E critical flows` 9m53s, integracija 14m39s. |
+| `46083269566` (PR) | `1f143355` | ✓ | Gate uz `playwright-report` artifact; annotacija otkrila da log i artifacti žive na hostu koji sandbox ne dohvata, pa je dokaz morao ići kroz `api.github.com`. |
+| `46085283825` (PR) | `b7b1c57d` | ✗ | `break-glass-command.integration.spec.ts` — `IdempotencyError(inProgress)` u `request-idempotency.service.ts:125`; ista putanja je prošla u runovima prije i poslije, a ovaj PR ne dira backend. Flake pod paralelnim opterećenjem, ne regresija. |
+| `46086785277` (PR) | `4cf83612` | ✓ | Cijeli matriks zelen; E2E annotacija `Outbound e-mail gate` nosi `{requested, channelBefore, channelClosed, restoredTo}` iz note fajla — `channelClosed:false` + postavljen `restoredTo` znači da je kanal za vrijeme runa bio zatvoren i da je vraćen. |
+
+Naučeno: guard koji čita workflow kao **tekst** puca svaki put kad se logika preseli u modul — zato sada čita
+ponašanje (`classifyPath`), a ne literal. Isto važi za dokaz: ono što se ne vidi iz runa (log, artifact) mora
+završiti u kanalu koji run sam nosi (check-run annotacija).
