@@ -20,6 +20,7 @@ import {
 } from "@/lib/entity-list/entity-mutation-query-keys";
 import { formatAssetDateTime, mapAssetError } from "@/lib/assets/asset-view";
 import { mapApiError } from "@/lib/map-api-error";
+import { directorySyncErrorKey } from "@/lib/directory/directory-sync-error-key";
 import { ApiError } from "@/services/api";
 import {
   assetDirectoryQueryKeys,
@@ -74,10 +75,12 @@ export function AssetDirectorySyncCard() {
         void queryClient.invalidateQueries({ queryKey: assetDirectoryQueryKeys.status });
       }
     } catch (caught) {
+      // W2.37b: the detail is a translated code, never the backend sentence.
+      const detailKey = caught instanceof ApiError ? directorySyncErrorKey(caught) : null;
       const detail =
-        caught instanceof ApiError && caught.message && caught.message !== caught.code
-          ? ` (${caught.message})`
-          : "";
+        detailKey === null || detailKey === "directory.ldaps.errors.unknown"
+          ? ""
+          : ` (${t(detailKey)})`;
       setError(`${t(mapAssetError(caught) ?? mapApiError(caught))}${detail}`);
     } finally {
       setPending(null);

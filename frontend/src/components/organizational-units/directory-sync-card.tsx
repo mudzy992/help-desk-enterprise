@@ -5,8 +5,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { errorTextClassName } from "@/components/ui/control";
+import {
+  directorySyncErrorKey,
+  type DirectorySyncErrorKey,
+} from "@/lib/directory/directory-sync-error-key";
 import { syncManualDirectoryCatalog } from "@/lib/directory/sync-manual-directory-catalog";
-import { ApiError } from "@/services/api";
 import { getDirectorySyncStatus, type DirectorySyncStatus } from "@/services/directory-sync-api";
 
 interface DirectorySyncCardProperties {
@@ -26,7 +29,13 @@ export function DirectorySyncCard({
 }: DirectorySyncCardProperties) {
   const { t } = useTranslation();
   const [status, setStatus] = useState<DirectorySyncStatus | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  /**
+   * W2.37b: this card used to render `ApiError.message`, i.e. the backend's
+   * English sentence ("Directory read is disabled") verbatim in a Bosnian UI.
+   * The card now stores an i18n key, so every known code has a translated
+   * message in both locales (guarded by `scripts/check-api-error-i18n.mjs`).
+   */
+  const [errorKey, setErrorKey] = useState<DirectorySyncErrorKey | null>(null);
   const [isRunning, setIsRunning] = useState(false);
 
   const reloadStatus = useCallback(async () => {
@@ -34,11 +43,11 @@ export function DirectorySyncCard({
       const next = await getDirectorySyncStatus();
       setStatus(next);
       onStatusLoaded?.(next);
-      setErrorMessage(null);
+      setErrorKey(null);
     } catch (error) {
-      setErrorMessage(error instanceof ApiError ? error.message : t("directory.syncLoadFailed"));
+      setErrorKey(directorySyncErrorKey(error));
     }
-  }, [t, onStatusLoaded]);
+  }, [onStatusLoaded]);
 
   useEffect(() => {
     if (canManage) {
@@ -48,13 +57,13 @@ export function DirectorySyncCard({
 
   const handleSync = async () => {
     setIsRunning(true);
-    setErrorMessage(null);
+    setErrorKey(null);
     try {
       await syncManualDirectoryCatalog();
       await reloadStatus();
       await onSynced();
     } catch (error) {
-      setErrorMessage(error instanceof ApiError ? error.message : t("directory.syncFailed"));
+      setErrorKey(directorySyncErrorKey(error));
     } finally {
       setIsRunning(false);
     }
@@ -116,10 +125,15 @@ export function DirectorySyncCard({
               : "—"}
           </span>
         </p>
-        {errorMessage ? (
-          <p role="alert" className={errorTextClassName}>
-            {errorMessage}
-          </p>
+        {errorKey !== null ? (
+          <div role="alert" className="space-y-1">
+            <p className={errorTextClassName}>{t(errorKey)}</p>
+            {errorKey === "directory.ldaps.errors.DIRECTORY_READ_DISABLED" ? (
+              <p className="text-[11.5px] text-muted-foreground">
+                {t("directory.syncDisabledHint")}
+              </p>
+            ) : null}
+          </div>
         ) : null}
         {status?.source === "ldaps" ? (
           <p className="text-[11.5px] text-muted-foreground">{t("directory.syncLdapsHint")}</p>

@@ -16,6 +16,7 @@ const KNOWN_CODES = [
   "DIRECTORY_SYNC_COOLDOWN",
   "DIRECTORY_SYNC_IN_PROGRESS",
   "DIRECTORY_SYNC_UNAVAILABLE",
+  "INVALID_SCOPE",
 ] as const;
 
 export type DirectorySyncErrorCode = (typeof KNOWN_CODES)[number];
