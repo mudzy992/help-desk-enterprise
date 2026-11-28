@@ -2956,7 +2956,7 @@
     {
       "id": "BA-organizational-units-06",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno (W2.36, [371](../implementation/371-w236-ba-organizational-units-06-tree-shape.md))",
       "source": "05-organizational-units.md",
       "owner": "WS-A",
       "wave": 2

@@ -33,6 +33,16 @@ describe("flattenOriginUnitOptions", () => {
     ]);
   });
 
+  it("labels a selector-only tree (W2.36) by name, because it carries no path", () => {
+    // The server sends `{id, name, type, children}` to callers without
+    // `organizationalUnit.manage`; the dropdown must still be usable.
+    expect(
+      flattenOriginUnitOptions([
+        { id: "ou-root", name: "Korisnici", type: "DIRECTORATE", children: [] },
+      ]),
+    ).toEqual([{ id: "ou-root", label: "Korisnici" }]);
+  });
+
   it("selects the only origin unit and leaves a multi-unit tree unselected", () => {
     expect(defaultOriginUnitId(flattenOriginUnitOptions(tree))).toBe("");
     expect(defaultOriginUnitId(flattenOriginUnitOptions([{ ...tree[0], children: [] }]))).toBe(

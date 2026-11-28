@@ -174,8 +174,11 @@ describe('OrganizationalUnitsService scope enforcement (W2.9)', () => {
 
     expect(tree).toHaveLength(1);
     expect(tree[0]?.id).toBe(branchA.id);
+    // W2.36: a holder of `organizationalUnit.manage` gets the admin projection.
+    const root = tree[0] as { readonly parentId?: string | null; readonly ouPath?: string };
+    expect(root.ouPath).toBe(branchA.ouPath);
     // The branch itself becomes the root; the parent outside the scope is gone.
-    expect(tree[0]?.parentId ?? null).toBeNull();
+    expect(root.parentId ?? null).toBeNull();
     expect(ids(tree).sort()).toEqual([branchA.id, childOfA.id].sort());
   });
 

@@ -32,7 +32,7 @@ import { organizationalUnitTreeReadRoles } from './organizational-unit-tree-read
 import { OrganizationalUnitsService } from './organizational-units.service';
 import type {
   OrganizationalUnitDetailResponse,
-  OrganizationalUnitTreeNodeResponse,
+  OrganizationalUnitTreeResponseNode,
   OrganizationalUnitUserResponse,
 } from './organizational-unit.types';
 import type { OrganizationalUnitDeleteResponse } from './organizational-unit-delete.types';
@@ -69,9 +69,11 @@ export class OrganizationalUnitsController {
   @RequireRoles(...organizationalUnitTreeReadRoles)
   getTree(
     @Req() request: AuthenticatedHttpRequest,
-  ): Promise<readonly OrganizationalUnitTreeNodeResponse[]> {
+  ): Promise<readonly OrganizationalUnitTreeResponseNode[]> {
     // The route stays open to every role (filters need a tree), but the admin
-    // control plane tree is narrowed to the scope the caller may act on.
+    // control plane tree is narrowed to the scope the caller may act on — and
+    // W2.36 (`BA-organizational-units-06`) narrows the *shape* for everyone else:
+    // no DN, no path, no org metadata unless the caller may manage units.
     return this.organizationalUnitsService.getTree(
       readAuthenticatedPrincipal(request)?.subjectId ?? null,
     );

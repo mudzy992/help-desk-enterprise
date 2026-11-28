@@ -29,6 +29,12 @@ export function matchCatalogEntry(
   entries: readonly ManualDirectoryOrganizationalUnit[],
   node: Pick<OrganizationalUnitTreeNode, "ouPath" | "distinguishedName">,
 ): CatalogEntryMatch {
+  // W2.36: the tree only carries a path for callers that may manage units. A
+  // selector-only response cannot be matched against the catalog, and guessing
+  // from the name would produce a request against the wrong row.
+  if (node.ouPath === undefined) {
+    return { kind: "missing" };
+  }
   const treePath = normalizeDirectoryPath(node.ouPath);
   const nodeDn =
     node.distinguishedName === undefined ? null : normalizeDirectoryPath(node.distinguishedName);
