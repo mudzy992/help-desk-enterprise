@@ -2,6 +2,10 @@ import type { PrismaService } from '../../common/prisma/prisma.service';
 import { auditLogActions } from '../audit-log/audit-log.constants';
 import type { AuditLogWriteClient } from '../audit-log/audit-log.types';
 import { createManualDirectoryOrganizationalUnitExternalId } from './create-manual-directory-organizational-unit-external-id';
+import {
+  buildManualDirectoryOrganizationalUnitDistinguishedName,
+  defaultManualDirectoryCatalogRootDistinguishedName,
+} from './manual-directory-organizational-unit-path';
 import { ManualDirectoryCatalogError } from './manual-directory-catalog.error';
 import { recordManualDirectoryCatalogChange } from './record-manual-directory-catalog-change';
 import type {
@@ -34,9 +38,15 @@ export async function createManualDirectoryOrganizationalUnit(
   const organizationalUnitPath = parent
     ? `${parent.organizationalUnitPath}/${displayName}`
     : `/${displayName}`;
-  const distinguishedName = input.distinguishedName?.trim() || (parent
-    ? `OU=${displayName},${parent.distinguishedName}`
-    : `OU=${displayName},DC=example,DC=com`);
+  // W2.37: escape the name and rewrite the fallback's first RDN by RDN
+  // boundaries, so a name with a DN special cannot produce a second RDN.
+  const distinguishedName =
+    input.distinguishedName?.trim() ||
+    buildManualDirectoryOrganizationalUnitDistinguishedName(
+      parent?.distinguishedName ?? null,
+      displayName,
+      defaultManualDirectoryCatalogRootDistinguishedName,
+    );
   const type = parseManualDirectoryOrganizationalUnitType(
     typeof input.type === 'string' ? input.type : input.type ?? null,
     defaultManualDirectoryOrganizationalUnitType(parentExternalId),

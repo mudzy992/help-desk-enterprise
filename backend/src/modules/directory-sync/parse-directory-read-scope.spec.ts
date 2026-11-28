@@ -179,6 +179,20 @@ describe('parseDirectoryReadScope', () => {
       });
     });
 
+    it('reads an escaped comma as part of the value, not as a separator (W2.37)', () => {
+      const scope = parseDirectoryReadScope({
+        operation: parseDirectoryReadOperation('organizational_units'),
+        scope: {
+          distinguishedName: 'ou=korisnici\\, inc., dc=local',
+          includeSubtree: true,
+        },
+        usersBaseDistinguishedName,
+        groupsBaseDistinguishedName,
+        mode: 'manual_catalog',
+      });
+      expect(scope.distinguishedName).toBe('OU=korisnici\\, inc.,DC=local');
+    });
+
     it('still normalizes and refuses a malformed distinguished name', () => {
       expect(() =>
         parseDirectoryReadScope({

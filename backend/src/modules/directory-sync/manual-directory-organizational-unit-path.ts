@@ -1,3 +1,17 @@
+import {
+  formatDistinguishedName,
+  formatDistinguishedNameAttribute,
+  parseDistinguishedName,
+} from '../../common/ldap/rfc4514-distinguished-name';
+
+/**
+ * Sample namespace used only when a manual catalogue row is created with no
+ * parent and the caller supplies no DN of its own — the old inline value was
+ * `DC=example,DC=com`, and the root builder replaces its first RDN.
+ */
+export const defaultManualDirectoryCatalogRootDistinguishedName =
+  'OU=Users,DC=example,DC=com';
+
 export type ManualDirectoryUnitLink = {
   readonly externalId: string;
   readonly displayName: string;
@@ -13,15 +27,21 @@ export function buildManualDirectoryOrganizationalUnitPath(
   return parentPath === null ? `/${displayName}` : `${parentPath}/${displayName}`;
 }
 
+/**
+ * W2.37 (BA-organizational-units-07): the first RDN is replaced by RDN
+ * boundaries through the shared RFC 4514 parser. `indexOf(',')` used to cut
+ * inside a value whose own comma was escaped (`OU=Korisnici\, Inc.,DC=local`).
+ */
 export function rewriteManualDirectoryRootDistinguishedName(
   existingDistinguishedName: string,
   displayName: string,
 ): string {
-  const commaIndex = existingDistinguishedName.indexOf(',');
-  if (commaIndex === -1) {
-    return `OU=${displayName}`;
+  const prefix = formatDistinguishedNameAttribute('OU', displayName);
+  const relatives = parseDistinguishedName(existingDistinguishedName);
+  if (relatives.length <= 1) {
+    return prefix;
   }
-  return `OU=${displayName}${existingDistinguishedName.slice(commaIndex)}`;
+  return `${prefix},${formatDistinguishedName(relatives.slice(1))}`;
 }
 
 export function buildManualDirectoryOrganizationalUnitDistinguishedName(
@@ -35,7 +55,7 @@ export function buildManualDirectoryOrganizationalUnitDistinguishedName(
       displayName,
     );
   }
-  return `OU=${displayName},${parentDistinguishedName}`;
+  return `${formatDistinguishedNameAttribute('OU', displayName)},${parentDistinguishedName}`;
 }
 
 export function isCircularManualDirectoryParent(input: {
