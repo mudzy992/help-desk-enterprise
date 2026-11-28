@@ -22,7 +22,10 @@ export function OrganizationalUnitDetailsCard({
 
   return (
     <Card className="fade-in">
-      <CardHeader title={t("directory.detailsTitle", { name: node.name })} subtitle={node.ouPath} />
+      <CardHeader
+        title={t("directory.detailsTitle", { name: node.name })}
+        subtitle={node.ouPath ?? typeLabel}
+      />
       <dl className="space-y-3 px-4 pb-3 pt-4 text-[12px]">
         <div>
           <dt className="text-[10.5px] uppercase tracking-[0.08em] text-muted-foreground">
@@ -39,12 +42,15 @@ export function OrganizationalUnitDetailsCard({
             {typeLabel}
           </dd>
         </div>
-        <div>
-          <dt className="text-[10.5px] uppercase tracking-[0.08em] text-muted-foreground">
-            {t("directory.detailsPathLabel")}
-          </dt>
-          <dd className="tnum mt-0.5 font-mono text-[11px] text-foreground/90">{node.ouPath}</dd>
-        </div>
+        {node.ouPath ? (
+          /* W2.36: a caller without `organizationalUnit.manage` sees no path at all. */
+          <div>
+            <dt className="text-[10.5px] uppercase tracking-[0.08em] text-muted-foreground">
+              {t("directory.detailsPathLabel")}
+            </dt>
+            <dd className="tnum mt-0.5 font-mono text-[11px] text-foreground/90">{node.ouPath}</dd>
+          </div>
+        ) : null}
         <div>
           <dt className="text-[10.5px] uppercase tracking-[0.08em] text-muted-foreground">
             {t("directory.detailsDnLabel")}

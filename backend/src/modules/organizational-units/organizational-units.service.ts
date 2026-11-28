@@ -9,6 +9,7 @@ import { assignUserOrganizationalUnit } from './assign-user-organizational-unit'
 import { createOrganizationalUnit } from './create-organizational-unit';
 import { deleteOrganizationalUnit } from './delete-organizational-unit';
 import { getOrganizationalUnit } from './get-organizational-unit';
+import { getOrganizationalUnitSelectionTree } from './get-organizational-unit-selection-tree';
 import { getOrganizationalUnitTree } from './get-organizational-unit-tree';
 import { listOrganizationalUnitUsers } from './list-organizational-unit-users';
 import { mapOrganizationalUnitError } from './map-organizational-unit-error';
@@ -16,7 +17,7 @@ import type {
   AssignUserOrganizationalUnitInput,
   CreateOrganizationalUnitInput,
   OrganizationalUnitDetailResponse,
-  OrganizationalUnitTreeNodeResponse,
+  OrganizationalUnitTreeResponseNode,
   OrganizationalUnitUserResponse,
   UpdateOrganizationalUnitInput,
 } from './organizational-unit.types';
@@ -53,14 +54,25 @@ export class OrganizationalUnitsService {
 
   /**
    * W2.9 (`BA-organizational-units-01`): a caller that holds the manage
-   * permission sees only the units that permission covers. Callers without it
-   * (USER, AGENT, service accounts) keep the unfiltered tree they use for
-   * filters — their access to the underlying data is decided elsewhere.
+   * permission sees only the units that permission covers.
+   *
+   * W2.36 (`BA-organizational-units-06`): callers **without** it keep the
+   * unfiltered tree they need for selectors, but in the minimal shape
+   * (`id`, `name`, `type`, `children`) — a USER, an AGENT or a service account
+   * has no business reading the LDAP naming, paths and org metadata of the whole
+   * company. The full admin projection is reserved for holders of
+   * `organizationalUnit.manage`; a caller without an identity gets the minimal
+   * shape too, so "no context" can never be the wider answer.
    */
-  getTree(actorUserId: string | null = null): Promise<readonly OrganizationalUnitTreeNodeResponse[]> {
-    return this.execute(async () =>
-      getOrganizationalUnitTree(this.prisma, await this.resolveTreeVisibility(actorUserId)),
-    );
+  getTree(
+    actorUserId: string | null = null,
+  ): Promise<readonly OrganizationalUnitTreeResponseNode[]> {
+    return this.execute(async () => {
+      const isVisible = await this.resolveTreeVisibility(actorUserId);
+      return isVisible === undefined
+        ? getOrganizationalUnitSelectionTree(this.prisma)
+        : getOrganizationalUnitTree(this.prisma, isVisible);
+    });
   }
 
   update(

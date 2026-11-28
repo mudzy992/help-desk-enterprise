@@ -28,7 +28,8 @@ export function flattenOriginUnitOptions(
     for (const item of items) {
       options.push({
         id: item.id,
-        label: item.ouPath.length > 0 ? item.ouPath : item.name,
+        // W2.36: selectors receive no path; the label falls back to the name.
+        label: item.ouPath && item.ouPath.length > 0 ? item.ouPath : item.name,
       });
       visit(item.children);
     }

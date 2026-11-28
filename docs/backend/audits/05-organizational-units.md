@@ -203,7 +203,7 @@ Ovo nije zeleni gate. Blokada je isti checkout reproducibility problem evidentir
 | BA-organizational-units-03 | P2       | Konkurentni hierarchy updatei nisu serijalizovani niti revision-guarded              | otvoreno | L        |
 | BA-organizational-units-04 | P2       | Case-insensitive DN identitet nije enforcean u bazi                                  | otvoreno | M        |
 | BA-organizational-units-05 | P2       | Principal invalidacija nakon mapping/deletea je optional i best effort               | otvoreno | M        |
-| BA-organizational-units-06 | P2       | Globalni tree read izlaže internu LDAP/topološku metadata svim korisnicima           | otvoreno | M        |
+| BA-organizational-units-06 | P2       | Globalni tree read izlaže internu LDAP/topološku metadata svim korisnicima           | zatvoreno (W2.36, [371](../implementation/371-w236-ba-organizational-units-06-tree-shape.md)) | M        |
 | BA-organizational-units-07 | P2       | DN parser/rewrite ne podržava realni RFC 4514 skup                                   | otvoreno | M        |
 | BA-organizational-units-08 | P3       | Tree/detail/user read i descendant rewrite nemaju operativne granice                 | otvoreno | M        |
 | BA-organizational-units-09 | P3       | No-op PATCH piše update i audit bez stvarne promjene                                 | otvoreno | S        |
@@ -409,3 +409,46 @@ Scope enforcement može promijeniti instalacije koje scoped ADMIN trenutno koris
 - PostgreSQL default collation/unique tretira DN string case-sensitive dok migration ne dokaže suprotno eksplicitnim indexom.
 - Konačna RFC 4514 i directory source-of-truth odluka biće dodatno provjerena u modulu 35 — `directory-sync`.
 - Korisnik je potvrdio prolaz kompletne CI/Playwright kolekcije, ali ona nema navedene negativne OU scope/multi-instance/concurrency scenarije.
+
+## 17. Implementacijski closeout — W2.36 (`BA-organizational-units-06`)
+
+**Nalaz.** `GET /organizational-units/tree` je dostupan svakoj roli (`USER`, `AGENT`, `ADMIN`,
+`SUPER_ADMIN`) i vraćao je **puni** `OrganizationalUnitResponse` za cijelu organizaciju: `distinguishedName`,
+`ouPath`, `company`, `department`, `parentId` i timestampove. Svaki autentifikovani račun dobijao je LDAP naming i
+topologiju koja mu za selector nije potrebna.
+
+**Korekcija.** Ruta ostaje dostupna svim rolama (filteri i „origin unit” dropdown je trebaju), ali odgovor ima
+**dva oblika**, a odluka je na serveru:
+
+| Pozivalac | Oblik | Sadržaj |
+| --- | --- | --- |
+| drži `organizationalUnit.manage` | admin projekcija (`OrganizationalUnitTreeNodeResponse`), i dalje **filtrirana** na sopstveni scope (W2.9) | sve kolone, uključujući DN i `ouPath` |
+| bez te permisije (USER, AGENT, servisni račun) | minimalni selector oblik (`OrganizationalUnitTreeSummaryNode`) | `id`, `name`, `type`, `children` |
+| bez identiteta (`actorUserId === null`) | minimalni oblik | kao gore — „nema konteksta” nikad nije širi odgovor |
+
+Ograničenje nije serijalizacija nego **projekcija**: `getOrganizationalUnitSelectionTree` traži od Prisma-e tačno
+`{ id, name, type, parentId }` (a `ouPath` koristi samo u `orderBy`, za redoslijed siblinga), pa osetljive kolone
+**nisu pročitane**. Time kasnije dodato polje na model ne može iscuriti kroz ovu rutu.
+
+**Politika grana (dogovorena ovdje, ne prećutana).** Pozivalac bez `organizationalUnit.manage` i dalje dobija
+**cijelu topologiju** u minimalnom obliku, jer je filteri po OU-u i „origin unit” izbor dio poslovnog toka; ono što
+se skriva je **opis** jedinice (DN, putanja, org metadata), ne postojanje grane. Filtriranje grana ostaje vezano za
+scope permisije (W2.9) i nije dio ovog nalaza.
+
+**Frontend.** `OrganizationalUnitTreeNode` sada ima opcione privilegovane kolone (`ouPath`, `distinguishedName`,
+`company`, `department`, `parentId`): tree item prikazuje putanju samo kad postoji, detalji padaju na labelu tipa,
+`flattenOriginUnitOptions` koristi `name` kad putanje nema, a `matchCatalogEntry` vraća `missing` bez putanje
+umjesto da pogađa red po imenu.
+
+**Dokaz.** `organizational-units.tree-shape.spec.ts` (**4**): pozivalac bez permisije izaziva `select` sa tačno
+četiri kolone i odgovor koji, čak i kad fake klijent vrati **cijele redove**, nema nijedan zabranjeni ključ (ni
+`DC=example`, ni `/Korisnici` u serijalizovanom odgovoru); nosilac permisije dobija admin projekciju (`select`
+odsutan, `ouPath`/DN prisutni); `null` akter dobija minimalni oblik.
+`get-organizational-unit-selection-tree.spec.ts` (**3**): ugovor `findMany` poziva, redoslijed siblinga, ključevi
+ograničeni na `{id,name,type,children}`, i to da red sa nepostojećim roditeljem ne postaje lažni korijen.
+Frontend: `ticket-display.spec.ts` +1 (labela bez putanje). Lokalno backend **16 suite / 83 testa** (`organizational-units/`),
+frontend **65 fajlova / 265 testova** (organizational-units + directory + tickets + admin) i cijeli `tsc -b` zelen.
+
+**Šta ovaj paket ne tvrdi.** Ne mijenja skup vidljivih grana za neprivilegovane pozivaoce (to je W2.9 scope
+politika), ne dira `GET /organizational-units/:id` (već je `organizationalUnit.manage`) i ne uvodi reviziju ili
+keš za tree — keširanje i operativne granice su `BA-organizational-units-08`.

@@ -117,9 +117,13 @@ export function OrganizationalUnitTreeItem({
         <span className="tnum rounded border border-border bg-elevated/60 px-1.5 py-0 text-[10px] text-muted-foreground">
           {t("directory.memberCountShort", { count: memberCount })}
         </span>
-        <span className="tnum hidden max-w-[46ch] flex-1 truncate text-right font-mono text-[10.5px] text-muted-foreground group-hover:text-muted-foreground lg:block">
-          {node.ouPath}
-        </span>
+        {node.ouPath ? (
+          /* W2.36: the path is part of the admin projection; a selector-only
+             caller receives no path and therefore renders no column. */
+          <span className="tnum hidden max-w-[46ch] flex-1 truncate text-right font-mono text-[10.5px] text-muted-foreground group-hover:text-muted-foreground lg:block">
+            {node.ouPath}
+          </span>
+        ) : null}
         {canManage ? (
           /* Paket 5.3.2 (D13): the row menu is a Radix dropdown, so an outside
              press, Escape and focus return are handled by the primitive

@@ -43,6 +43,25 @@ export type OrganizationalUnitTreeNodeResponse = OrganizationalUnitResponse & {
   readonly children: readonly OrganizationalUnitTreeNodeResponse[];
 };
 
+/**
+ * W2.36 (`BA-organizational-units-06`): the shape a caller **without**
+ * `organizationalUnit.manage` receives from `GET /organizational-units/tree`.
+ * It carries what a selector needs (identity, label, icon type and the parent
+ * structure) and nothing that describes the directory topology: no
+ * `distinguishedName`, no `ouPath`, no company/department, no timestamps.
+ */
+export type OrganizationalUnitTreeSummaryNode = {
+  readonly id: string;
+  readonly name: string;
+  readonly type: OrganizationalUnitType;
+  readonly children: readonly OrganizationalUnitTreeSummaryNode[];
+};
+
+/** The tree route answers with either shape; which one is decided server-side. */
+export type OrganizationalUnitTreeResponseNode =
+  | OrganizationalUnitTreeNodeResponse
+  | OrganizationalUnitTreeSummaryNode;
+
 export type CreateOrganizationalUnitInput = {
   readonly name: string;
   readonly type: OrganizationalUnitType;
