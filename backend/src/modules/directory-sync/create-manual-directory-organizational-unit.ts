@@ -1,9 +1,9 @@
 import type { PrismaService } from '../../common/prisma/prisma.service';
 import { auditLogActions } from '../audit-log/audit-log.constants';
 import type { AuditLogWriteClient } from '../audit-log/audit-log.types';
-import { recordOrganizationalUnitChange } from '../organizational-units/record-organizational-unit-change';
 import { createManualDirectoryOrganizationalUnitExternalId } from './create-manual-directory-organizational-unit-external-id';
 import { ManualDirectoryCatalogError } from './manual-directory-catalog.error';
+import { recordManualDirectoryCatalogChange } from './record-manual-directory-catalog-change';
 import type {
   CreateManualDirectoryOrganizationalUnitInput,
   ManualDirectoryCatalogAuditContext,
@@ -55,17 +55,17 @@ export async function createManualDirectoryOrganizationalUnit(
           type,
         },
       });
-      await recordOrganizationalUnitChange(
+      await recordManualDirectoryCatalogChange(
         transaction as unknown as AuditLogWriteClient,
         {
-          action: auditLogActions.organizationalUnitCreated,
+          action: auditLogActions.directoryCatalogUnitCreated,
           entityId: unit.id,
           actorUserId: context.actorUserId,
           requestId: context.requestId,
           metadata: {
             source: 'manual_directory_catalog',
             after: {
-              displayName: unit.displayName,
+              name: unit.displayName,
               distinguishedName: unit.distinguishedName,
               organizationalUnitPath: unit.organizationalUnitPath,
               parentExternalId: unit.parentExternalId,

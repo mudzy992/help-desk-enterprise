@@ -67,6 +67,15 @@ export const auditActionCompatibilityRegistry: Readonly<Record<string, AuditActi
   [auditLogActions.authAdminBulkPasswordReset]: compatibility([auditLogEntityTypes.user]),
   [auditLogActions.directoryTestConnection]: compatibility([auditLogEntityTypes.directorySyncRun]),
   [auditLogActions.directoryDryRun]: compatibility([auditLogEntityTypes.directorySyncRun]),
+  [auditLogActions.directoryCatalogUnitCreated]: compatibility([
+    auditLogEntityTypes.directoryCatalogEntry,
+  ]),
+  [auditLogActions.directoryCatalogUnitUpdated]: compatibility([
+    auditLogEntityTypes.directoryCatalogEntry,
+  ]),
+  [auditLogActions.directoryCatalogUnitDeleted]: compatibility([
+    auditLogEntityTypes.directoryCatalogEntry,
+  ]),
   [auditLogActions.directorySyncApplied]: compatibility([auditLogEntityTypes.directorySyncRun]),
   [auditLogActions.directorySyncAborted]: compatibility([auditLogEntityTypes.directorySyncRun]),
   [auditLogActions.reportTrendsExported]: compatibility([auditLogEntityTypes.reportTrends]),

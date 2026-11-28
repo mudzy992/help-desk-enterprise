@@ -8,12 +8,12 @@ jest.mock('../../generated/prisma/enums', () => ({
   },
 }), { virtual: true });
 
-jest.mock('../organizational-units/record-organizational-unit-change', () => ({
-  recordOrganizationalUnitChange: jest.fn().mockResolvedValue(undefined),
+jest.mock('./record-manual-directory-catalog-change', () => ({
+  recordManualDirectoryCatalogChange: jest.fn().mockResolvedValue(undefined),
 }));
 
 import { auditLogActions } from '../audit-log/audit-log.constants';
-import { recordOrganizationalUnitChange } from '../organizational-units/record-organizational-unit-change';
+import { recordManualDirectoryCatalogChange } from './record-manual-directory-catalog-change';
 import { ManualDirectoryCatalogError } from './manual-directory-catalog.error';
 import { updateManualDirectoryOrganizationalUnit } from './update-manual-directory-organizational-unit';
 
@@ -62,7 +62,7 @@ function createCatalogPrisma(seed: CatalogRow[]) {
 }
 
 describe('updateManualDirectoryOrganizationalUnit', () => {
-  beforeEach(() => jest.mocked(recordOrganizationalUnitChange).mockClear());
+  beforeEach(() => jest.mocked(recordManualDirectoryCatalogChange).mockClear());
 
   it('cascades organizationalUnitPath and DN to children and grandchildren on rename', async () => {
     const { prisma, rows, transaction } = createCatalogPrisma([
@@ -103,10 +103,10 @@ describe('updateManualDirectoryOrganizationalUnit', () => {
       organizationalUnitPath: '/Staff/IT/Helpdesk',
       distinguishedName: 'OU=Helpdesk,OU=IT,OU=Staff,DC=example,DC=com',
     });
-    expect(recordOrganizationalUnitChange).toHaveBeenCalledWith(
+    expect(recordManualDirectoryCatalogChange).toHaveBeenCalledWith(
       transaction,
       expect.objectContaining({
-        action: auditLogActions.organizationalUnitUpdated,
+        action: auditLogActions.directoryCatalogUnitUpdated,
         metadata: expect.objectContaining({
           source: 'manual_directory_catalog',
           affectedDescendantCount: 2,

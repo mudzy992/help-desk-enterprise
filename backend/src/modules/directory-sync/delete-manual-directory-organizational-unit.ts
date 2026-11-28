@@ -3,12 +3,9 @@ import type { PrismaService } from '../../common/prisma/prisma.service';
 import { auditLogActions } from '../audit-log/audit-log.constants';
 import type { AuditLogWriteClient } from '../audit-log/audit-log.types';
 import { deleteOrganizationalUnitInTransaction } from '../organizational-units/delete-organizational-unit';
-import type {
-  OrganizationalUnitDeleteOutcome,
-  OrganizationalUnitDeleteBlocker,
-} from '../organizational-units/organizational-unit-delete.types';
-import { recordOrganizationalUnitChange } from '../organizational-units/record-organizational-unit-change';
+import type { OrganizationalUnitDeleteOutcome } from '../organizational-units/organizational-unit-delete.types';
 import { ManualDirectoryCatalogError } from './manual-directory-catalog.error';
+import { recordManualDirectoryCatalogChange } from './record-manual-directory-catalog-change';
 import type { ManualDirectoryCatalogAuditContext } from './manual-directory-catalog.types';
 
 export async function deleteManualDirectoryOrganizationalUnit(
@@ -66,30 +63,33 @@ export async function deleteManualDirectoryOrganizationalUnit(
         context,
         'manual_directory_catalog',
       );
-    } else {
-      await recordOrganizationalUnitChange(
-        transaction as unknown as AuditLogWriteClient,
-        {
-          action: auditLogActions.organizationalUnitDeleted,
-          entityId: existing.id,
-          actorUserId: context.actorUserId,
-          requestId: context.requestId,
-          metadata: {
-            source: 'manual_directory_catalog',
-            before: {
-              displayName: existing.displayName,
-              distinguishedName: existing.distinguishedName,
-              organizationalUnitPath: existing.organizationalUnitPath,
-              parentExternalId: existing.parentExternalId,
-              type: existing.type,
-            },
-            removedRoleAssignments: 0,
-            affectedUserIds: [],
-            blockers: [] as readonly OrganizationalUnitDeleteBlocker[],
-          },
-        },
-      );
     }
+    // W2.35b: the catalog row itself is always audited as a catalog change. When a
+    // real OU had been materialized, the line above already wrote its own
+    // entity-scoped `organizational_unit.deleted`; this entry says that the
+    // directory row is gone, which is what the next sync sees.
+    await recordManualDirectoryCatalogChange(
+      transaction as unknown as AuditLogWriteClient,
+      {
+        action: auditLogActions.directoryCatalogUnitDeleted,
+        entityId: existing.id,
+        actorUserId: context.actorUserId,
+        requestId: context.requestId,
+        metadata: {
+          source: 'manual_directory_catalog',
+          before: {
+            name: existing.displayName,
+            distinguishedName: existing.distinguishedName,
+            organizationalUnitPath: existing.organizationalUnitPath,
+            parentExternalId: existing.parentExternalId,
+            type: existing.type,
+          },
+          removedRoleAssignments:
+            deletion.warnings.find((warning) => warning.code === 'ROLE_ASSIGNMENTS_REMOVED')?.count ?? 0,
+          affectedUserCount: deletion.affectedUserIds.length,
+        },
+      },
+    );
 
     await transaction.manualDirectoryOrganizationalUnit.delete({ where: { externalId } });
     return deletion;

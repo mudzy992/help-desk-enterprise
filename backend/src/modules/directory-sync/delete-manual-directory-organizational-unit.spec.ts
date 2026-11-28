@@ -1,6 +1,7 @@
 import { auditLogActions } from '../audit-log/audit-log.constants';
 import { deleteOrganizationalUnitInTransaction } from '../organizational-units/delete-organizational-unit';
 import { recordOrganizationalUnitChange } from '../organizational-units/record-organizational-unit-change';
+import { recordManualDirectoryCatalogChange } from './record-manual-directory-catalog-change';
 import { ManualDirectoryCatalogError } from './manual-directory-catalog.error';
 import { deleteManualDirectoryOrganizationalUnit } from './delete-manual-directory-organizational-unit';
 
@@ -9,6 +10,10 @@ jest.mock('../organizational-units/delete-organizational-unit', () => ({
 }));
 jest.mock('../organizational-units/record-organizational-unit-change', () => ({
   recordOrganizationalUnitChange: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock('./record-manual-directory-catalog-change', () => ({
+  recordManualDirectoryCatalogChange: jest.fn().mockResolvedValue(undefined),
 }));
 
 describe('deleteManualDirectoryOrganizationalUnit', () => {
@@ -51,6 +56,7 @@ describe('deleteManualDirectoryOrganizationalUnit', () => {
   beforeEach(() => {
     jest.mocked(deleteOrganizationalUnitInTransaction).mockReset();
     jest.mocked(recordOrganizationalUnitChange).mockReset().mockResolvedValue(undefined);
+    jest.mocked(recordManualDirectoryCatalogChange).mockReset().mockResolvedValue(undefined);
   });
 
   it('rejects deletion when catalog children exist and reports the count', async () => {
@@ -110,6 +116,20 @@ describe('deleteManualDirectoryOrganizationalUnit', () => {
       warnings: [{ code: 'ROLE_ASSIGNMENTS_REMOVED', count: 2 }],
       affectedUserIds: ['user-1'],
     });
+    // W2.35b: the catalog row is audited as a catalog entry, and the numbers the
+    // operator needs are copied from the OU delete that just ran.
+    expect(recordManualDirectoryCatalogChange).toHaveBeenCalledWith(
+      transaction,
+      expect.objectContaining({
+        action: auditLogActions.directoryCatalogUnitDeleted,
+        entityId: catalogUnit.id,
+        metadata: expect.objectContaining({
+          source: 'manual_directory_catalog',
+          removedRoleAssignments: 2,
+          affectedUserCount: 1,
+        }),
+      }),
+    );
   });
 
   it('rolls back the live OU delete when its audit insert fails inside the catalog transaction', async () => {
@@ -163,7 +183,7 @@ describe('deleteManualDirectoryOrganizationalUnit', () => {
       });
       return { warnings: [], affectedUserIds: [] };
     });
-    jest.mocked(recordOrganizationalUnitChange).mockRejectedValueOnce(auditFailure);
+    jest.mocked(recordManualDirectoryCatalogChange).mockRejectedValueOnce(auditFailure);
 
     await expect(
       deleteManualDirectoryOrganizationalUnit(prisma as never, catalogUnit.externalId),
@@ -178,20 +198,21 @@ describe('deleteManualDirectoryOrganizationalUnit', () => {
       actorUserId: 'admin-1',
       requestId: 'req-2',
     });
-    expect(recordOrganizationalUnitChange).toHaveBeenCalledWith(
+    expect(recordManualDirectoryCatalogChange).toHaveBeenCalledWith(
       transaction,
       expect.objectContaining({
-        action: auditLogActions.organizationalUnitDeleted,
+        action: auditLogActions.directoryCatalogUnitDeleted,
         entityId: catalogUnit.id,
         actorUserId: 'admin-1',
         requestId: 'req-2',
         metadata: expect.objectContaining({
           source: 'manual_directory_catalog',
           removedRoleAssignments: 0,
-          affectedUserIds: [],
+          affectedUserCount: 0,
         }),
       }),
     );
+    expect(recordOrganizationalUnitChange).not.toHaveBeenCalled();
     expect(transaction.manualDirectoryOrganizationalUnit.delete).toHaveBeenCalled();
   });
 

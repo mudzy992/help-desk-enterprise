@@ -227,6 +227,19 @@ jer redovni kanal čita primaoce iz baze. Stanje se bilježi u historiju kad baz
 **Postupak:** status i logovi Postgres kontejnera; slobodan disk (`df -h`); broj konekcija
 (vidi [pg-pool-saturation.md](pg-pool-saturation.md)). Oporavak: [../DR.md](../DR.md).
 
+## audit-write-failure
+
+**Uslov:** u logu se pojavi `AUTHORIZATION_AUDIT_UNAVAILABLE` ili
+`authorization_audit_unavailable` sa `cause=` koji sadrži `XX002`, `index_corrupted` ili
+`cannot find insert offset`, ili `prisma.auditLog.create()` padne sa `P2039`. Simptom kod
+korisnika: svaki SuperAdmin zahtjev vraća `503`, a administracija izgleda „polomljeno"
+(permisije prazne, akcije ne prolaze).
+
+**Postupak:** [pg-index-corruption.md](pg-index-corruption.md). Kratko: potvrdi `amcheck`-om,
+`REINDEX INDEX CONCURRENTLY` na oštećenom `AuditLog` indeksu, `VACUUM (ANALYZE)`, pa dokaži
+sa `GET /roles/permissions/catalog` i kreiranjem OU. **Ne** isključivati audit guard i
+**ne** vraćati bazu iz backupa — lanac hash-eva čini gubitak redova nerazlučivim od napada.
+
 ## redis-unavailable
 
 **Uslov:** Redis ne odgovara na dvije uzastopne provjere. Obavještenje ide preko rezervnog kanala.

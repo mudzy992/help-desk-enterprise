@@ -104,6 +104,19 @@ export const auditActionSchemaRegistry: Readonly<Record<string, AuditActionSchem
   [auditLogActions.directoryDryRun]: schema([]),
   [auditLogActions.directorySyncApplied]: schema([]),
   [auditLogActions.directorySyncAborted]: schema([]),
+  [auditLogActions.directoryCatalogUnitCreated]: schema(['after', 'source']),
+  [auditLogActions.directoryCatalogUnitUpdated]: schema([
+    'affectedDescendantCount',
+    'after',
+    'before',
+    'source',
+  ]),
+  [auditLogActions.directoryCatalogUnitDeleted]: schema([
+    'affectedUserCount',
+    'before',
+    'removedRoleAssignments',
+    'source',
+  ]),
   [auditLogActions.reportTrendsExported]: schema(['fileName', 'format', 'from', 'granularity', 'groupId', 'priority', 'recordCount', 'serviceId', 'to'], 'pseudonymous'),
   // W7.108: a preview has no file, so the allowlist cannot admit export keys.
   [auditLogActions.reportPackPreviewed]: schema(['boundaries', 'from', 'organizationalUnitId', 'pack', 'recordCount', 'to', 'truncated', 'truncatedInput', 'windowMode'], 'pseudonymous'),
