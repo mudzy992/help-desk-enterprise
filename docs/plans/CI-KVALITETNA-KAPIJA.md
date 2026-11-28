@@ -327,3 +327,17 @@ zatvoren i je li poslije vraćen; ako fajl ne postoji, annotacija to kaže ekspl
 
 **Šta ovo ne tvrdi.** Mapiranje ne dokazuje da je odabrani spec dovoljan za svaku izmjenu — dokazuje da nepoznata
 izmjena ne može ostati bez browsera. Zato je fallback širi od mapiranog skupa, a ne obrnuto.
+
+**Ishod prvog dana (2026-11-27/28).**
+
+| Run | Commit | Rezultat | Šta je pokazao |
+|---|---|---|---|
+| `46080648126` (push) | `03700531` | ✗ | `Frontend build + test` je pao na koraku koji testira sam workflow-YAML guard: test je tražio stari bash `case` literal iz `ci.yml`, a klasifikacija se preselila u `scripts/ci-change-scope.mjs`. Guard sada provjerava `classifyPath()` iz modula (16/16). Run je pošteno pao — nije bio zelen. |
+| `46081404211` (PR) | `5705fa96` | ✓ | Prvi puni PR run: backend, integracija, frontend, container, docs i E2E zeleni; `E2E critical flows` 9m53s, integracija 14m39s. |
+| `46083269566` (PR) | `1f143355` | ✓ | Gate uz `playwright-report` artifact; annotacija otkrila da log i artifacti žive na hostu koji sandbox ne dohvata, pa je dokaz morao ići kroz `api.github.com`. |
+| `46085283825` (PR) | `b7b1c57d` | ✗ | `break-glass-command.integration.spec.ts` — `IdempotencyError(inProgress)` u `request-idempotency.service.ts:125`; ista putanja je prošla u runovima prije i poslije, a ovaj PR ne dira backend. Flake pod paralelnim opterećenjem, ne regresija. |
+| `46086785277` (PR) | `4cf83612` | ✓ | Cijeli matriks zelen; E2E annotacija `Outbound e-mail gate` nosi `{requested, channelBefore, channelClosed, restoredTo}` iz note fajla — `channelClosed:false` + postavljen `restoredTo` znači da je kanal za vrijeme runa bio zatvoren i da je vraćen. |
+
+Naučeno: guard koji čita workflow kao **tekst** puca svaki put kad se logika preseli u modul — zato sada čita
+ponašanje (`classifyPath`), a ne literal. Isto važi za dokaz: ono što se ne vidi iz runa (log, artifact) mora
+završiti u kanalu koji run sam nosi (check-run annotacija).
