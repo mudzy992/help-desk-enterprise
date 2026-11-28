@@ -131,6 +131,11 @@ export function OrganizationalUnitsPage({ embedded = false }: OrganizationalUnit
                 errorsByUnitId={errorsByUnitId}
               />
             ) : null}
+            {catalogActions.catalogError !== null ? (
+              <p role="alert" className="px-4 pb-2 text-[11.5px] text-destructive">
+                {catalogActions.catalogError}
+              </p>
+            ) : null}
             {catalogActions.catalogHint ? (
               <p className="px-4 pb-2 text-[11.5px] text-muted-foreground">
                 {catalogActions.catalogHint}
@@ -180,8 +185,10 @@ export function OrganizationalUnitsPage({ embedded = false }: OrganizationalUnit
           mode={formMode}
           catalog={catalogActions.catalog}
           editingUnit={editingUnit}
+          tree={directory.tree}
           onOpenChange={setFormOpen}
           onSaved={catalogActions.handleSaved}
+          onCreated={catalogActions.handleCreated}
         />
       ) : null}
     </section>

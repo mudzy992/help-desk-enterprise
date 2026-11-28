@@ -6,6 +6,7 @@ import { ApiError } from "@/services/api";
 import {
   deleteManualDirectoryOrganizationalUnit,
   listManualDirectoryOrganizationalUnits,
+  type CreateOrganizationalUnitFromTreeResponse,
   type ManualDirectoryOrganizationalUnit,
 } from "@/services/directory-sync-api";
 import type { OrganizationalUnitTreeNode } from "@/services/organizational-units-api";
@@ -79,6 +80,12 @@ export function useManualDirectoryCatalogActions(input: {
   const [catalog, setCatalog] = useState<readonly ManualDirectoryOrganizationalUnit[]>([]);
   const [actionError, setActionError] = useState<CatalogActionError | null>(null);
   const [catalogHint, setCatalogHint] = useState<string | null>(null);
+  /**
+   * W2.36c: a message that is not tied to a tree row. The old create flow attached
+   * its failure to `unit.externalId`, but the tree renders by OU id — so a failed
+   * materialization produced **no** message at all and the pending hint stayed.
+   */
+  const [catalogError, setCatalogError] = useState<string | null>(null);
   const blockerLabels: Record<string, string> = {
     children: t("directory.ouBlockerKinds.children"),
     mappedUsers: t("directory.ouBlockerKinds.mappedUsers"),
@@ -203,15 +210,38 @@ export function useManualDirectoryCatalogActions(input: {
 
   const handleSaved = async (unit: ManualDirectoryOrganizationalUnit) => {
     setCatalogHint(t("directory.catalogPendingSync"));
+    setCatalogError(null);
     try {
       await materializeCatalogUnit(unit);
     } catch (error) {
-      setActionError({
-        organizationalUnitId: unit.externalId,
-        message: error instanceof ApiError ? error.message : t("directory.syncFailed"),
-      });
+      const message = error instanceof ApiError ? error.message : t("directory.syncFailed");
+      // Both places: under the row when it has one, and above the tree so the
+      // failure is visible even when the row was never materialized.
+      setActionError({ organizationalUnitId: unit.externalId, message });
+      setCatalogError(message);
+      setCatalogHint(null);
       await reloadCatalog();
     }
+  };
+
+  /**
+   * W2.36c: the create form posts name + tree parent; the server writes both rows
+   * in one transaction. Nothing is "pending" here, so the hint states the result
+   * and a failed refresh must not be reported as a failed create.
+   */
+  const handleCreated = async (created: CreateOrganizationalUnitFromTreeResponse) => {
+    setActionError(null);
+    setCatalogError(null);
+    setCatalogHint(null);
+    try {
+      await input.reloadDirectory();
+    } catch {
+      setCatalogError(t("directory.ouCreatedRefreshFailed"));
+      await reloadCatalog();
+      return;
+    }
+    await reloadCatalog();
+    setCatalogHint(t("directory.ouCreatedHint", { path: created.organizationalUnit.ouPath }));
   };
 
   return {
@@ -221,7 +251,9 @@ export function useManualDirectoryCatalogActions(input: {
     isPathAligned: (node: OrganizationalUnitTreeNode) =>
       matchCatalogEntry(catalog, node).kind === "matched",
     catalogHint,
+    catalogError,
     reloadCatalog,
+    handleCreated,
     resolveCatalogEntry,
     handleDelete,
     handleSaved,

@@ -51,6 +51,13 @@ export const adminReadOnlyRouteRegistry: readonly AdminReadOnlyRouteRegistration
     kind: 'mutation',
   },
   {
+    handler: 'ManualDirectoryCatalogController.createFromTree',
+    method: 'POST',
+    path: '/directory-sync/manual-catalog/organizational-units/from-tree',
+    moduleKey: adminReadOnlyModuleKeys.admin,
+    kind: 'mutation',
+  },
+  {
     handler: 'ManualDirectoryCatalogController.delete',
     method: 'DELETE',
     path: '/directory-sync/manual-catalog/organizational-units/:externalId',

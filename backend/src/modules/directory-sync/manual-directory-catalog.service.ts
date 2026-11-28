@@ -4,6 +4,11 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import type { OrganizationalUnitDeleteResponse } from '../organizational-units/organizational-unit-delete.types';
 import { OrganizationalUnitError } from '../organizational-units/organizational-unit.error';
 import { mapOrganizationalUnitError } from '../organizational-units/map-organizational-unit-error';
+import {
+  createOrganizationalUnitFromTree,
+  type CreateOrganizationalUnitFromTreeInput,
+  type CreateOrganizationalUnitFromTreeResponse,
+} from './create-organizational-unit-from-tree';
 import { createManualDirectoryOrganizationalUnit } from './create-manual-directory-organizational-unit';
 import { deleteManualDirectoryOrganizationalUnit } from './delete-manual-directory-organizational-unit';
 import { DirectoryReadCache } from './directory-read.cache';
@@ -41,6 +46,21 @@ export class ManualDirectoryCatalogService {
   ): Promise<ManualDirectoryOrganizationalUnitResponse> {
     return this.execute(async () => {
       const created = await createManualDirectoryOrganizationalUnit(this.prisma, input, context);
+      this.directoryReadCache.clear();
+      return created;
+    });
+  }
+
+  /**
+   * W2.36c: create the catalogue row **and** the tree row in one transaction, so
+   * the operator never sees "sačuvano u katalogu" for a unit that will not appear.
+   */
+  createFromTree(
+    input: CreateOrganizationalUnitFromTreeInput,
+    context: ManualDirectoryCatalogAuditContext = emptyAuditContext,
+  ): Promise<CreateOrganizationalUnitFromTreeResponse> {
+    return this.execute(async () => {
+      const created = await createOrganizationalUnitFromTree(this.prisma, input, context);
       this.directoryReadCache.clear();
       return created;
     });

@@ -91,6 +91,34 @@ export function createManualDirectoryOrganizationalUnit(input: {
   });
 }
 
+/**
+ * W2.36c: the safe create path. There is no `distinguishedName` in the payload —
+ * the server derives it from the tree parent — so the browser cannot write a row
+ * the directory read will refuse.
+ */
+export type CreateOrganizationalUnitFromTreeResponse = {
+  readonly organizationalUnit: {
+    readonly id: string;
+    readonly name: string;
+    readonly type: string;
+    readonly distinguishedName: string;
+    readonly ouPath: string;
+    readonly parentId: string | null;
+  };
+  readonly catalogEntry: ManualDirectoryOrganizationalUnit;
+};
+
+export function createOrganizationalUnitFromTree(input: {
+  readonly displayName: string;
+  readonly parentOrganizationalUnitId?: string | null;
+  readonly type?: string | null;
+}): Promise<CreateOrganizationalUnitFromTreeResponse> {
+  return apiRequest("/directory-sync/manual-catalog/organizational-units/from-tree", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
 export function updateManualDirectoryOrganizationalUnit(
   externalId: string,
   input: {

@@ -86,12 +86,20 @@
 
 1. Tab **Org. jedinice**; stablo je **Stablo organizacionih jedinica**, s napomenom da je `ouPath` aplikacijski
    identitet stabla, a DN izvor istine za direktorij.
-2. **Dodaj OU** otvara formu: **Naziv (segment putanje)**, **parent** (ili bez parenta) i **tip**. DN se gradi
-   automatski iz parenta i naziva — ne unosi se ručno u ovoj formi.
+2. **Dodaj OU** otvara formu: **Nadređena jedinica (iz stabla)** — birate postojeći čvor stabla ili *bez
+   nadređene* — **Naziv (segment putanje)** i **tip**. Distinguished Name se **računa na serveru** iz odabrane
+   jedinice i samo se prikazuje: polje nije uredivo, pa se ne može upisati DN koji stablo ne očekuje. Naziv se
+   provjerava dok kucate (prazno, predugačko, zabranjeni znakovi `, / \ + = " ; < >`, dupla putanja) i dugme
+   **Sačuvaj** ostaje zatvoreno dok unos nije ispravan. Katalog i stablo se upisuju u **istoj transakciji**, pa
+   jedinica odmah postoji u stablu — nema „sačuvano u katalogu, čeka očitavanje" stanja. Kreiranje ispod
+   jedinice koja postoji samo u stablu automatski je **usvaja** u katalog, pa se ne može desiti da dijete visi
+   o redu kojeg stablo nikad nije dobilo.
 3. Detalji jedinice prikazuju **Naziv (segment putanje)**, **ouPath (kanonski)**, **Distinguished Name (LDAP)** i
    broj **mapiranih korisnika**. Izmjena naziva ili parenta **prepisuje `ouPath` i DN cijele podgrane**.
 4. Ako red nije u ručnom katalogu (ili mu se `ouPath` razlikuje od kataloškog zapisa), poruka se prikazuje **odmah
-   ispod tog reda** i **nijedan zahtjev ne ide na server** — prvo pokrenite očitavanje kataloga.
+   ispod tog reda** i **nijedan zahtjev ne ide na server** — prvo pokrenite očitavanje kataloga. Ako očitavanje
+   ipak padne (npr. `INVALID_SCOPE`), poruka se sada prikazuje i **iznad stabla**, a ne ostaje samo „pokreće se
+   očitavanje…"; u režimu **Ručni katalog** se scope više ne mjeri AD baznim DN-ovima, nego katalogom.
 5. Ako je izvor **Ručni katalog**, **Obriši** u jednoj transakciji uklanja kataloški zapis i materijalizovanu
    OJ. Brisanje se odbija ako postoje djeca, katalog korisnici/grupe ili žive veze; poruka navodi tip i broj
    svake blokirajuće veze. Korisnički nalozi se **nikad ne brišu** ovim putem. OJ-scoped dodjele uloga se mogu

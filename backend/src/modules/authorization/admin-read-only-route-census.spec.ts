@@ -45,7 +45,7 @@ describe('admin read-only route census', () => {
   it('catalogues every mutating admin route exactly once', () => {
     expect(manifest.routes.length).toBeGreaterThan(500);
     expect(findAdminReadOnlyCensusViolations(manifest.routes)).toEqual([]);
-    expect(adminReadOnlyRouteRegistry).toHaveLength(74);
+    expect(adminReadOnlyRouteRegistry).toHaveLength(75);
   });
 
   it('exempts only handlers that perform no persistent write', () => {

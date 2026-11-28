@@ -14,7 +14,18 @@ export function parseDirectoryReadScope(input: {
   readonly scope: DirectoryReadScopeInput | undefined;
   readonly usersBaseDistinguishedName: string;
   readonly groupsBaseDistinguishedName: string;
+  /**
+   * W2.36c: a `manual_catalog` read is a SELECT over rows the same operator can
+   * already list; it never touches LDAP. The LDAPS rules — "an OU is required,
+   * never the forest root" (RAW §466) — were still applied to it, so a catalogue
+   * anchored at `OU=Korisnici,DC=local` could not be read at all and every unit
+   * added there stayed out of the tree. The guard still requires a normalized DN;
+   * it just stops pretending a local query is a directory browse.
+   */
+  readonly mode?: 'ldaps' | 'manual_catalog';
 }): NormalizedDirectoryReadScope {
+  const mode = input.mode ?? 'ldaps';
+  const isManualCatalog = mode === 'manual_catalog';
   if (input.scope === undefined || typeof input.scope !== 'object') {
     throw new DirectorySyncError('INVALID_SCOPE');
   }
@@ -23,21 +34,26 @@ export function parseDirectoryReadScope(input: {
   }
   const distinguishedName = parseOptionalDistinguishedName(
     input.scope.distinguishedName,
+    { allowForestRoot: isManualCatalog },
   );
   const organizationalUnitPath = parseOptionalOrganizationalUnitPath(
     input.scope.organizationalUnitPath,
   );
-  if (distinguishedName === null && organizationalUnitPath === null) {
+  if (
+    distinguishedName === null &&
+    organizationalUnitPath === null &&
+    !isManualCatalog
+  ) {
     throw new DirectorySyncError('INVALID_SCOPE');
   }
-  if (distinguishedName !== null) {
+  if (distinguishedName !== null && !isManualCatalog) {
     assertDistinguishedNameIsWithinOperationBase({
       operation: input.operation,
       distinguishedName,
       usersBaseDistinguishedName: input.usersBaseDistinguishedName,
       groupsBaseDistinguishedName: input.groupsBaseDistinguishedName,
     });
-  } else {
+  } else if (!isManualCatalog) {
     assertOperationBasesAreConfigured({
       operation: input.operation,
       usersBaseDistinguishedName: input.usersBaseDistinguishedName,
@@ -53,6 +69,7 @@ export function parseDirectoryReadScope(input: {
 
 function parseOptionalDistinguishedName(
   value: string | undefined,
+  options: { readonly allowForestRoot: boolean },
 ): string | null {
   if (value === undefined) {
     return null;
@@ -61,7 +78,7 @@ function parseOptionalDistinguishedName(
     throw new DirectorySyncError('INVALID_SCOPE');
   }
   const normalized = normalizeDirectoryDistinguishedName(value);
-  if (isForestRootDistinguishedName(normalized)) {
+  if (!options.allowForestRoot && isForestRootDistinguishedName(normalized)) {
     throw new DirectorySyncError('INVALID_SCOPE');
   }
   return normalized;
