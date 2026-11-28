@@ -9,11 +9,11 @@ jest.mock('../../generated/prisma/enums', () => ({
 }), { virtual: true });
 
 import { auditLogActions } from '../audit-log/audit-log.constants';
-import { recordOrganizationalUnitChange } from '../organizational-units/record-organizational-unit-change';
 import { createManualDirectoryOrganizationalUnit } from './create-manual-directory-organizational-unit';
+import { recordManualDirectoryCatalogChange } from './record-manual-directory-catalog-change';
 
-jest.mock('../organizational-units/record-organizational-unit-change', () => ({
-  recordOrganizationalUnitChange: jest.fn().mockResolvedValue(undefined),
+jest.mock('./record-manual-directory-catalog-change', () => ({
+  recordManualDirectoryCatalogChange: jest.fn().mockResolvedValue(undefined),
 }));
 
 describe('createManualDirectoryOrganizationalUnit', () => {
@@ -44,19 +44,19 @@ describe('createManualDirectoryOrganizationalUnit', () => {
       { actorUserId: 'admin-1', requestId: 'req-1' },
     );
     expect(result.id).toBe('catalog-1');
-    expect(recordOrganizationalUnitChange).toHaveBeenCalledWith(
+    expect(recordManualDirectoryCatalogChange).toHaveBeenCalledWith(
       transaction,
       expect.objectContaining({
-        action: auditLogActions.organizationalUnitCreated,
+        action: auditLogActions.directoryCatalogUnitCreated,
         entityId: 'catalog-1',
         actorUserId: 'admin-1',
         requestId: 'req-1',
         metadata: expect.objectContaining({
           source: 'manual_directory_catalog',
-          after: expect.objectContaining({ displayName: 'Users' }),
+          after: expect.objectContaining({ name: 'Users' }),
         }),
       }),
     );
-    expect(JSON.stringify(jest.mocked(recordOrganizationalUnitChange).mock.calls)).not.toContain('password');
+    expect(JSON.stringify(jest.mocked(recordManualDirectoryCatalogChange).mock.calls)).not.toContain('password');
   });
 });

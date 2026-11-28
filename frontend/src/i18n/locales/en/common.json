@@ -291,6 +291,12 @@
             "organizational_unit_created": "Organizational unit — created",
             "organizational_unit_updated": "Organizational unit — updated",
             "organizational_unit_deleted": "Organizational unit — deleted",
+
+            "directory_catalog_organizational_unit_created": "User directory — organizational unit row created",
+
+            "directory_catalog_organizational_unit_updated": "User directory — organizational unit row updated",
+
+            "directory_catalog_organizational_unit_deleted": "User directory — organizational unit row deleted",
             "group_created": "Group — created",
             "group_updated": "Group — updated",
             "group_deleted": "Group — deleted",
@@ -460,6 +466,8 @@
             "organizational_unit": "Organizational unit",
             "group": "Group",
             "directory_sync_run": "Directory-sync run",
+
+            "directory_catalog_entry": "User directory catalog entry",
             "report_trends": "Report trends",
             "report_schedule": "Report schedule",
             "data_subject_request": "Privacy-rights request",

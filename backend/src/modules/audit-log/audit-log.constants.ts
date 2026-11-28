@@ -105,6 +105,16 @@ export const auditLogActions = {
   directoryDryRun: 'directory.dry_run',
   directorySyncApplied: 'directory.sync_applied',
   directorySyncAborted: 'directory.sync_aborted',
+  /**
+   * W2.35b: a row of the **manually maintained directory catalog** is not an
+   * `OrganizationalUnit` — it is installation-level metadata that a later read
+   * may materialize into one (`materialize-directory-read.ts`). Auditing it as
+   * `organizational_unit.created` claimed an OU identity that did not exist yet,
+   * and the entity-scoped policy rejected the row, so creation failed with a 500.
+   */
+  directoryCatalogUnitCreated: 'directory.catalog_organizational_unit.created',
+  directoryCatalogUnitUpdated: 'directory.catalog_organizational_unit.updated',
+  directoryCatalogUnitDeleted: 'directory.catalog_organizational_unit.deleted',
   // Paket 2.5: trends, PDF and scheduled reports.
   reportTrendsExported: 'report.trends.exported',
   /**
@@ -293,6 +303,8 @@ export const auditLogEntityTypes = {
   organizationalUnit: 'organizational_unit',
   group: 'group',
   directorySyncRun: 'directory_sync_run',
+  /** W2.35b: one row of the manual directory catalog (see the action above). */
+  directoryCatalogEntry: 'directory_catalog_entry',
   reportTrends: 'report_trends',
   reportSchedule: 'report_schedule',
   // Paket 2.6

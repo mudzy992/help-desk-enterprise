@@ -11,6 +11,13 @@ export const auditActionScopeRegistry: Readonly<Record<string, AuditScopePolicy>
   [auditLogActions.securityMfaSecretsReencrypted]: 'global',
   [auditLogActions.opsDlqBaselineAcknowledged]: 'global',
   [auditLogActions.opsAlertTestSent]: 'global',
+  // W2.35b: the manual directory catalog is installation-level metadata owned by
+  // the SuperAdmin control plane; there is no unit to attribute a catalog row to
+  // (the unit appears only when a read materializes the row into an OU, and that
+  // OU write has its own entity-scoped audit).
+  [auditLogActions.directoryCatalogUnitCreated]: 'global',
+  [auditLogActions.directoryCatalogUnitUpdated]: 'global',
+  [auditLogActions.directoryCatalogUnitDeleted]: 'global',
   [auditLogActions.ticketConfidentialViewed]: 'entity',
   [auditLogActions.ticketConfidentialDenied]: 'entity',
   [auditLogActions.ticketConfidentialBreakGlass]: 'entity',

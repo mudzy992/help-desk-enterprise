@@ -36,6 +36,10 @@ export const knownAuditActions = [
   "organizational_unit.created",
   "organizational_unit.updated",
   "organizational_unit.deleted",
+  // W2.35b: a row of the manual directory catalog is not an OrganizationalUnit.
+  "directory.catalog_organizational_unit.created",
+  "directory.catalog_organizational_unit.updated",
+  "directory.catalog_organizational_unit.deleted",
   "group.created",
   "group.updated",
   "group.deleted",

@@ -18,6 +18,8 @@ export const knownAuditEntityTypes = [
   "organizational_unit",
   "group",
   "directory_sync_run",
+  // W2.35b: a row of the manual directory catalog, not the OU it may become.
+  "directory_catalog_entry",
   "report_trends",
   "report_schedule",
   "data_subject_request",

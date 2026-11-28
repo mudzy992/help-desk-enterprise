@@ -293,6 +293,12 @@
             "organizational_unit_created": "Organizaciona jedinica — kreiran",
             "organizational_unit_updated": "Organizaciona jedinica — ažuriran",
             "organizational_unit_deleted": "Organizaciona jedinica — obrisan",
+
+            "directory_catalog_organizational_unit_created": "Imenik korisnika — organizaciona jedinica kreirana",
+
+            "directory_catalog_organizational_unit_updated": "Imenik korisnika — organizaciona jedinica ažurirana",
+
+            "directory_catalog_organizational_unit_deleted": "Imenik korisnika — organizaciona jedinica obrisana",
             "group_created": "Grupa — kreiran",
             "group_updated": "Grupa — ažuriran",
             "group_deleted": "Grupa — obrisan",
@@ -462,6 +468,8 @@
             "organizational_unit": "Organizaciona jedinica",
             "group": "Grupa",
             "directory_sync_run": "Pokretanje sinhronizacije direktorija",
+
+            "directory_catalog_entry": "Stavka imenika korisnika",
             "report_trends": "Trendovi izvještaja",
             "report_schedule": "Raspored izvještaja",
             "data_subject_request": "Zahtjev za prava privatnosti",
