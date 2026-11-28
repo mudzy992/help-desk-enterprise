@@ -1786,7 +1786,10 @@
     },
     "saved": "Permissions saved.",
     "savedRefreshFailed": "The permissions were saved, but the view was not refreshed. Refresh to see the confirmed state.",
-    "refreshAction": "Refresh view"
+    "refreshAction": "Refresh view",
+    "errorSystemRoleImmutable": "SuperAdmin always holds every permission; the matrix is not editable.",
+    "systemRoleImmutableTitle": "The SuperAdmin matrix is fixed",
+    "systemRoleImmutableBody": "SuperAdmin always holds the full permission catalog at runtime, so there is nothing to add or remove. Editing this matrix would display a state that has no effect on access, which is why it is locked. Grant permissions on other roles instead."
   },
   "users": {
     "actions": "Actions",

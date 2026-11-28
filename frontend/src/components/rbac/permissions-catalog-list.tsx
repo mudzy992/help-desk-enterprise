@@ -10,12 +10,15 @@ interface PermissionsCatalogListProperties {
   readonly groups: readonly PermissionCategoryGroup[];
   readonly enabledKeys: readonly string[];
   readonly onToggle: (permissionKey: string, checked: boolean) => void;
+  /** W2.36b: the SuperAdmin matrix is displayed, never edited. */
+  readonly readOnly?: boolean;
 }
 
 export function PermissionsCatalogList({
   groups,
   enabledKeys,
   onToggle,
+  readOnly = false,
 }: PermissionsCatalogListProperties) {
   const { t } = useTranslation();
   return (
@@ -40,6 +43,7 @@ export function PermissionsCatalogList({
                     </span>
                     <Switch
                       checked={checked}
+                      disabled={readOnly}
                       aria-label={description}
                       onCheckedChange={(value) => onToggle(entry.key, value)}
                     />

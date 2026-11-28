@@ -2,6 +2,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PermissionsPanel } from "@/components/rbac/permissions-panel";
+import { roleKeys } from "@/lib/session/permission-keys";
 import { ApiError } from "@/services/api";
 import {
   getRolePermissions,
@@ -149,5 +150,53 @@ describe("PermissionsPanel save vs refresh (W7.72)", () => {
     await waitFor(() => expect(screen.getByText("permissions.errorGeneric")).toBeTruthy());
     expect(toast).not.toHaveBeenCalledWith(expect.objectContaining({ title: "permissions.saved" }));
     expect(screen.queryByTestId("permissions-saved-not-refreshed")).toBeNull();
+  });
+});
+
+/**
+ * W2.36b: the server refuses every write to the SUPER_ADMIN matrix. The panel used
+ * to let the operator tick, preview and save, then reported the refusal as
+ * "Nemate dozvolu za upravljanje permisijama uloga." — i.e. it told the only
+ * account allowed to edit role permissions that it was not allowed to.
+ */
+describe("PermissionsPanel SuperAdmin matrix (W2.36b)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    arrange();
+    vi.mocked(listRoles).mockResolvedValue([
+      { key: "AGENT", name: "Agent", permissionCount: 1 },
+      { key: roleKeys.superAdmin, name: "SuperAdmin", permissionCount: 1 },
+    ]);
+  });
+  afterEach(cleanup);
+
+  it("says why the SuperAdmin matrix is locked and offers no save", async () => {
+    render(<PermissionsPanel />);
+
+    fireEvent.change(await screen.findByLabelText("permissions.roleSelect"), {
+      target: { value: roleKeys.superAdmin },
+    });
+
+    expect(await screen.findByTestId("permissions-system-role-note")).toBeTruthy();
+    expect(screen.getByText("permissions.systemRoleImmutableTitle")).toBeTruthy();
+    expect(screen.getByText("permissions.systemRoleImmutableBody")).toBeTruthy();
+    // The matrix stays visible (an operator must be able to read it) but locked.
+    expect(screen.getByRole("switch").getAttribute("disabled")).not.toBeNull();
+    // Runtime truth for SuperAdmin is the whole catalog: the stored row for
+    // `problem.manage` is the only seeded one, yet every entry renders as held.
+    expect(screen.getByRole("switch").getAttribute("aria-checked")).toBe("true");
+    expect(
+      screen.getByRole("button", { name: "permissions.previewAction" }).getAttribute("disabled"),
+    ).not.toBeNull();
+  });
+
+  it("leaves an ordinary role editable", async () => {
+    render(<PermissionsPanel />);
+
+    expect(await screen.findByRole("switch")).toBeTruthy();
+    expect(screen.queryByTestId("permissions-system-role-note")).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "permissions.previewAction" }).getAttribute("disabled"),
+    ).toBeNull();
   });
 });

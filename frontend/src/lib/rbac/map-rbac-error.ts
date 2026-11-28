@@ -7,6 +7,8 @@ export type RbacErrorKey =
   | "permissions.errorPreviewRequired"
   | "permissions.errorPreviewStale"
   | "permissions.errorPreviewConsumed"
+  // W2.36b: the SuperAdmin matrix is immutable by design — that is not a 403.
+  | "permissions.errorSystemRoleImmutable"
   | "permissions.errorGeneric";
 
 const codeKeys: Partial<Record<string, RbacErrorKey>> = {
@@ -20,6 +22,7 @@ const codeKeys: Partial<Record<string, RbacErrorKey>> = {
   // W2.30 (BA-rbac-02): the preview token is single-use — the second save of the
   // same preview is refused by the server, not silently re-applied.
   PREVIEW_CONSUMED: "permissions.errorPreviewConsumed",
+  SYSTEM_ROLE_PERMISSIONS_IMMUTABLE: "permissions.errorSystemRoleImmutable",
 };
 
 export function mapRbacError(error: unknown): RbacErrorKey {

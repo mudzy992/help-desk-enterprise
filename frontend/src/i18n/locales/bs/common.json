@@ -1795,7 +1795,10 @@
     },
     "saved": "Permisije su sačuvane.",
     "savedRefreshFailed": "Permisije su sačuvane, ali prikaz nije osvježen. Osvježite da vidite potvrđeno stanje.",
-    "refreshAction": "Osvježi prikaz"
+    "refreshAction": "Osvježi prikaz",
+    "errorSystemRoleImmutable": "SuperAdmin uvijek ima sva prava; matrica se ne uređuje.",
+    "systemRoleImmutableTitle": "SuperAdmin matrica je nepromjenjiva",
+    "systemRoleImmutableBody": "SuperAdmin na runtimeu uvijek ima cijeli katalog prava, pa nema šta dodavati ni oduzimati. Izmjena ove matrice bi prikazivala stanje koje ne utiče na pristup — zato je zaključana. Prava dodjeljujte drugim ulogama."
   },
   "users": {
     "actions": "Akcije",
