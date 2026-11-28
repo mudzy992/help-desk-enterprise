@@ -224,6 +224,13 @@ export function createInMemoryOrganizationalUnitPrisma(): {
     slaRule: { count: async () => 0 },
     reportSchedule: { count: async () => 0 },
     ticket: { count: async () => 0 },
+    manualDirectoryOrganizationalUnit: {
+      count: async () => 0,
+      findMany: async () => [],
+      delete: async () => ({}),
+    },
+    manualDirectoryUser: { count: async () => 0 },
+    manualDirectoryGroup: { count: async () => 0 },
     userRole: {
       findFirst: async () => null,
       findMany: async ({ where, distinct }: {

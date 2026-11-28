@@ -19,6 +19,7 @@ import type {
 } from './organizational-unit-delete.types';
 import { organizationalUnitDeleteErrorCode } from './organizational-unit.error';
 import { recordOrganizationalUnitChange } from './record-organizational-unit-change';
+import { recordManualDirectoryCatalogChange } from '../directory-sync/record-manual-directory-catalog-change';
 
 export async function deleteOrganizationalUnit(
   prisma: PrismaService,
@@ -62,10 +63,10 @@ export async function deleteOrganizationalUnitInTransaction(
     throw new OrganizationalUnitError('NOT_FOUND');
   }
 
-  const blockers = await countOrganizationalUnitDeleteBlockers(
-    transaction,
-    organizationalUnitId,
-  );
+  const blockers = await countOrganizationalUnitDeleteBlockers(transaction, {
+    id: organizationalUnitId,
+    ouPath: unit.ouPath,
+  });
   if (blockers.length > 0) {
     throw blockerError(blockers);
   }
@@ -83,6 +84,12 @@ export async function deleteOrganizationalUnitInTransaction(
     select: { userId: true },
   });
   const affectedUserIds = [...new Set(roleAssignments.map((assignment) => assignment.userId))];
+
+  await removeMirroredCatalogEntries(
+    transaction,
+    { distinguishedName: unit.distinguishedName, ouPath: unit.ouPath },
+    context,
+  );
 
   await transaction.organizationalUnit.delete({ where: { id: organizationalUnitId } });
   await recordOrganizationalUnitChange(
@@ -120,6 +127,70 @@ export async function deleteOrganizationalUnitInTransaction(
         ? [{ code: 'ROLE_ASSIGNMENTS_REMOVED', count: roleAssignments.length }]
         : [],
   };
+}
+
+/**
+ * W2.37b: a unit that exists in both the tree and the manual-only catalogue must
+ * lose both rows in one commit. Before this the tree row went away and the
+ * catalogue row stayed, so the unit was still offered as a parent and re-creating
+ * the same path failed with `DUPLICATE_PATH`.
+ *
+ * Rows are matched by path (and by DN as a fallback, because a mirrored row may
+ * carry the other namespace) for this unit and everything below it — the delete
+ * preflight already refused the request when catalogue children, users or groups
+ * hang under the path, so what is left describes units that no longer exist.
+ * Each removed row is audited as a catalogue change, keeping the audit trail
+ * readable from the catalogue side too.
+ */
+async function removeMirroredCatalogEntries(
+  transaction: Prisma.TransactionClient,
+  unit: { readonly distinguishedName: string; readonly ouPath: string },
+  context: OrganizationalUnitAuditContext,
+): Promise<void> {
+  const rows = await transaction.manualDirectoryOrganizationalUnit.findMany({
+    where: {
+      OR: [
+        { organizationalUnitPath: unit.ouPath },
+        { organizationalUnitPath: { startsWith: `${unit.ouPath}/` } },
+        { distinguishedName: unit.distinguishedName },
+      ],
+    },
+    select: {
+      id: true,
+      externalId: true,
+      displayName: true,
+      distinguishedName: true,
+      organizationalUnitPath: true,
+      parentExternalId: true,
+      type: true,
+    },
+  });
+  for (const row of rows) {
+    await recordManualDirectoryCatalogChange(
+      transaction as unknown as AuditLogWriteClient,
+      {
+        action: auditLogActions.directoryCatalogUnitDeleted,
+        entityId: row.id,
+        actorUserId: context.actorUserId,
+        requestId: context.requestId,
+        metadata: {
+          source: 'organizational_units',
+          before: {
+            name: row.displayName,
+            distinguishedName: row.distinguishedName,
+            organizationalUnitPath: row.organizationalUnitPath,
+            parentExternalId: row.parentExternalId,
+            type: row.type,
+          },
+          removedRoleAssignments: 0,
+          affectedUserCount: 0,
+        },
+      },
+    );
+    await transaction.manualDirectoryOrganizationalUnit.delete({
+      where: { externalId: row.externalId },
+    });
+  }
 }
 
 function blockerError(blockers: readonly OrganizationalUnitDeleteBlocker[]): OrganizationalUnitError {

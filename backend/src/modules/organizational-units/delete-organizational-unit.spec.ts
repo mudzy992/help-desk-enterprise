@@ -41,6 +41,14 @@ describe('deleteOrganizationalUnitInTransaction', () => {
       slaRule: { count: jest.fn().mockResolvedValue(0) },
       reportSchedule: { count: jest.fn().mockResolvedValue(0) },
       ticket: { count: jest.fn().mockResolvedValue(0) },
+      // W2.37b: the manual-only catalogue is part of the delete preflight.
+      manualDirectoryOrganizationalUnit: {
+        count: jest.fn().mockResolvedValue(0),
+        findMany: jest.fn().mockResolvedValue([]),
+        delete: jest.fn().mockResolvedValue({}),
+      },
+      manualDirectoryUser: { count: jest.fn().mockResolvedValue(0) },
+      manualDirectoryGroup: { count: jest.fn().mockResolvedValue(0) },
       // W2.11: the cascade bumps the shared catalogue revision in the same
       // transaction it deletes the unit in.
       organizationalUnitCatalogRevision: {

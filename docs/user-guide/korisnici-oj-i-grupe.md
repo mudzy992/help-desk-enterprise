@@ -110,11 +110,13 @@ tags: [korisnici, organizacione-jedinice, grupe, ad-sync, uloge]
    ispod tog reda** i **nijedan zahtjev ne ide na server** — prvo pokrenite očitavanje kataloga. Ako očitavanje
    ipak padne (npr. `INVALID_SCOPE`), poruka se sada prikazuje i **iznad stabla**, a ne ostaje samo „pokreće se
    očitavanje…"; u režimu **Ručni katalog** se scope više ne mjeri AD baznim DN-ovima, nego katalogom.
-5. Ako je izvor **Ručni katalog**, **Obriši** u jednoj transakciji uklanja kataloški zapis i materijalizovanu
-   OJ. Brisanje se odbija ako postoje djeca, katalog korisnici/grupe ili žive veze; poruka navodi tip i broj
-   svake blokirajuće veze. Korisnički nalozi se **nikad ne brišu** ovim putem. OJ-scoped dodjele uloga se mogu
-   ukloniti zajedno s OJ-om; nakon brisanja prikazuje se upozorenje s njihovim brojem, a pogođeni cachevi se
-   invalidiraju. Ova radnja **ne briše stvarni AD nalog**.
+5. **Obriši** radi iz stabla, bez obzira na katalog: zahtjev ide na OJ rutu, a server u **jednoj transakciji**
+   uklanja OJ i njen kataloški zapis (ako postoji). Prije toga se odbija ako postoje djeca, katalog
+   korisnici/grupe ili žive veze; poruka navodi tip i broj svake blokirajuće veze. Korisnički nalozi se **nikad
+   ne brišu** ovim putem. OJ-scoped dodjele uloga se mogu ukloniti zajedno s OJ-om; nakon brisanja prikazuje se
+   upozorenje s njihovim brojem, a pogođeni cachevi se invalidiraju. Ova radnja **ne briše stvarni AD nalog**.
+   Ako je katalog ostao sa zapisom iste putanje (npr. od ranijeg, prekinutog kreiranja), brisanje OJ-a ga čisti —
+   nema više „ova OJ nije u katalogu" za jedinicu koju ste upravo dodali.
 6. Panel **AD sinhronizacija** (vidljiv samo SuperAdminu) prikazuje režim čitanja, throttle, keš, zadnje
    očitavanje i izvor (**AD (LDAPS)** ili **Ručni katalog**), uz **Pokreni ručno očitavanje**.
 7. U istom panelu je **Sinhronizacija s Active Directoryjem**: **Test veze**, **Probni prolaz** (pregled plana

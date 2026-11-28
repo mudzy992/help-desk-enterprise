@@ -30,6 +30,30 @@ export function listOrganizationalUnitTree(): Promise<readonly OrganizationalUni
   return apiRequest("/organizational-units/tree");
 }
 
+export type OrganizationalUnitDeleteWarning = {
+  readonly code: string;
+  readonly count: number;
+};
+
+export type OrganizationalUnitDeleteResponse = {
+  readonly warnings: readonly OrganizationalUnitDeleteWarning[];
+};
+
+/**
+ * W2.37b: the tree is the authority, so deleting a unit is an organizational-unit
+ * request again. The screen used to go through the manual-only catalogue and
+ * refused with "not in the catalogue" whenever the mirror row was missing — even
+ * for a unit the operator had just created. The server removes the mirrored
+ * catalogue row in the same transaction.
+ */
+export function deleteOrganizationalUnit(
+  organizationalUnitId: string,
+): Promise<OrganizationalUnitDeleteResponse> {
+  return apiRequest(`/organizational-units/${encodeURIComponent(organizationalUnitId)}`, {
+    method: "DELETE",
+  });
+}
+
 export function listOrganizationalUnitUsers(
   organizationalUnitId: string,
 ): Promise<readonly OrganizationalUnitUser[]> {

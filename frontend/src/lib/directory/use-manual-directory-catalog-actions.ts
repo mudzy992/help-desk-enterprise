@@ -1,15 +1,18 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { directorySyncErrorKey } from "@/lib/directory/directory-sync-error-key";
 import { matchCatalogEntry } from "@/lib/directory/match-catalog-entry";
 import { syncManualDirectoryCatalog } from "@/lib/directory/sync-manual-directory-catalog";
 import { ApiError } from "@/services/api";
 import {
-  deleteManualDirectoryOrganizationalUnit,
   listManualDirectoryOrganizationalUnits,
   type CreateOrganizationalUnitFromTreeResponse,
   type ManualDirectoryOrganizationalUnit,
 } from "@/services/directory-sync-api";
-import type { OrganizationalUnitTreeNode } from "@/services/organizational-units-api";
+import {
+  deleteOrganizationalUnit,
+  type OrganizationalUnitTreeNode,
+} from "@/services/organizational-units-api";
 
 const blockerErrorCodes = new Set([
   "HAS_CHILDREN",
@@ -161,13 +164,16 @@ export function useManualDirectoryCatalogActions(input: {
     return match.entry;
   };
 
+  /**
+   * W2.37b: deleting a unit no longer requires the manual-only catalogue. The
+   * tree is the authority, so the request goes to `DELETE /organizational-units/:id`
+   * and the server removes the mirrored catalogue row in the same transaction.
+   * Previously a missing mirror row produced "this OU is not in the catalogue" for
+   * a unit the operator had just created — and a stale mirror row stayed behind.
+   */
   const handleDelete = async (node: OrganizationalUnitTreeNode) => {
-    const entry = resolveCatalogEntry(node);
-    if (entry === null) {
-      return;
-    }
     try {
-      const result = await deleteManualDirectoryOrganizationalUnit(entry.externalId);
+      const result = await deleteOrganizationalUnit(node.id);
       const removedRoleAssignments = result.warnings.find(
         (warning) => warning.code === "ROLE_ASSIGNMENTS_REMOVED",
       )?.count;
@@ -214,7 +220,8 @@ export function useManualDirectoryCatalogActions(input: {
     try {
       await materializeCatalogUnit(unit);
     } catch (error) {
-      const message = error instanceof ApiError ? error.message : t("directory.syncFailed");
+      // W2.37b: never render the backend sentence — map the code to a key.
+      const message = t(directorySyncErrorKey(error));
       // Both places: under the row when it has one, and above the tree so the
       // failure is visible even when the row was never materialized.
       setActionError({ organizationalUnitId: unit.externalId, message });

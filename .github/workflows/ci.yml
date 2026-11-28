@@ -603,6 +603,10 @@ jobs:
         run: node ../scripts/check-ticket-translation-keys.mjs
       - name: Test the ticket translation guard itself
         run: node --test ../scripts/check-ticket-translation-keys.test.mjs
+      - name: Check backend error codes are translated (no raw sentences in the UI)
+        run: node ../scripts/check-api-error-i18n.mjs
+      - name: Test the API-error i18n guard itself
+        run: node --test ../scripts/check-api-error-i18n.test.mjs
       - name: Check i18n keys and the Pulse design system
         run: npm run i18n:check
       - name: Check theme contrast (WCAG AA — konstitucija §22.1 i §22.3)
