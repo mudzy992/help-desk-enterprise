@@ -2,15 +2,15 @@
   "schemaVersion": 2,
   "generatedFrom": "backend/src/**/*.controller.ts + explicit guards + backend/route-policy-overrides.json + app.module.ts + worker.module.ts",
   "controllerFiles": 99,
-  "routeCount": 634,
+  "routeCount": 635,
   "classificationCounts": {
     "worker": 1,
-    "authenticated": 614,
+    "authenticated": 615,
     "public": 19,
     "webhook": 1
   },
   "guardBoundaryCounts": {
-    "explicit": 614,
+    "explicit": 615,
     "inherited-or-public": 20
   },
   "routes": [
@@ -2585,6 +2585,22 @@
       "handler": "update",
       "method": "PATCH",
       "path": "/directory-sync/manual-catalog/organizational-units/:externalId",
+      "classGuards": [
+        "SessionAuthenticationGuard",
+        "RoleGuard"
+      ],
+      "methodGuards": [],
+      "guardBoundary": "explicit",
+      "classification": "authenticated",
+      "policyOwner": "directory-sync",
+      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+    },
+    {
+      "source": "backend/src/modules/directory-sync/manual-directory-catalog.controller.ts",
+      "controller": "ManualDirectoryCatalogController",
+      "handler": "createFromTree",
+      "method": "POST",
+      "path": "/directory-sync/manual-catalog/organizational-units/from-tree",
       "classGuards": [
         "SessionAuthenticationGuard",
         "RoleGuard"

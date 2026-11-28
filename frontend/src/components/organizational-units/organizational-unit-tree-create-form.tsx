@@ -172,7 +172,7 @@ export function OrganizationalUnitTreeCreateForm({
             {t("directory.ouDnPlaceholder")}
           </span>
           <div
-            className="block min-h-6 break-all rounded-md border border-border/70 bg-muted/30 px-2 py-1 font-mono text-[11px] text-muted-foreground"
+            className="block min-h-6 break-all rounded-md border border-border/70 bg-surface px-2 py-1 font-mono text-[11px] text-foreground"
             data-testid="ou-dn-preview"
           >
             {distinguishedName ?? t("directory.ouDnDerivedHint")}
