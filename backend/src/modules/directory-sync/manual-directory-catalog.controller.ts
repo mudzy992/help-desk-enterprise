@@ -19,9 +19,11 @@ import { authorizationRoleKeys } from '../authorization/authorization.constants'
 import { RequireRoles } from '../authorization/require-roles.decorator';
 import { RoleGuard } from '../authorization/role.guard';
 import { CreateManualDirectoryOrganizationalUnitDto } from './dto/create-manual-directory-organizational-unit.dto';
+import { CreateOrganizationalUnitFromTreeDto } from './dto/create-organizational-unit-from-tree.dto';
 import { UpdateManualDirectoryOrganizationalUnitDto } from './dto/update-manual-directory-organizational-unit.dto';
 import { ManualDirectoryCatalogService } from './manual-directory-catalog.service';
 import type { ManualDirectoryOrganizationalUnitResponse } from './manual-directory-catalog.types';
+import type { CreateOrganizationalUnitFromTreeResponse } from './create-organizational-unit-from-tree';
 import type { OrganizationalUnitDeleteResponse } from '../organizational-units/organizational-unit-delete.types';
 
 @Controller('directory-sync/manual-catalog/organizational-units')
@@ -51,6 +53,25 @@ export class ManualDirectoryCatalogController {
   ): Promise<ManualDirectoryOrganizationalUnitResponse> {
     return this.manualDirectoryCatalogService.createOrganizationalUnit(
       body,
+      readAuditContext(request),
+    );
+  }
+
+  /**
+   * W2.36c: the safe create path the screen uses. The client sends a name plus a
+   * **tree** parent; the DN is derived server-side and both rows commit together.
+   */
+  @Post('from-tree')
+  createFromTree(
+    @Body() body: CreateOrganizationalUnitFromTreeDto,
+    @Req() request: AuthenticatedHttpRequest,
+  ): Promise<CreateOrganizationalUnitFromTreeResponse> {
+    return this.manualDirectoryCatalogService.createFromTree(
+      {
+        displayName: body.displayName,
+        parentOrganizationalUnitId: body.parentOrganizationalUnitId ?? null,
+        type: body.type,
+      },
       readAuditContext(request),
     );
   }

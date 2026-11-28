@@ -67,14 +67,21 @@ export class DirectorySyncService {
       configuration.strategy,
       configuration.source,
     );
+    // W2.36c: a manual catalogue has no LDAP base DN; an unset one means "the whole
+    // catalogue", which is exactly what the linking list needs.
+    const baseDistinguishedName =
+      configuration.source === 'manual_catalog'
+        ? configuration.usersBaseDistinguishedName.trim() || undefined
+        : configuration.usersBaseDistinguishedName;
     const scope = parseDirectoryReadScope({
       operation: 'users',
       scope: {
-        distinguishedName: configuration.usersBaseDistinguishedName,
+        distinguishedName: baseDistinguishedName,
         includeSubtree: true,
       },
       usersBaseDistinguishedName: configuration.usersBaseDistinguishedName,
       groupsBaseDistinguishedName: configuration.groupsBaseDistinguishedName,
+      mode: configuration.source,
     });
     const result = await provider.read({ operation: 'users', scope });
     return result.users;
@@ -92,6 +99,7 @@ export class DirectorySyncService {
       scope: input.scope,
       usersBaseDistinguishedName: configuration.usersBaseDistinguishedName,
       groupsBaseDistinguishedName: configuration.groupsBaseDistinguishedName,
+      mode: configuration.source,
     });
     if (!configuration.enabled) {
       throw new DirectorySyncError('DIRECTORY_READ_DISABLED');
